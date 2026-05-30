@@ -1,0 +1,294 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ========== Tailwind 自定义组件层 ========== */
+@layer components {
+  /* shadcn 风格按钮 */
+  .btn {
+    @apply inline-flex items-center justify-center rounded-md text-sm font-medium
+           transition-colors focus-visible:outline-none focus-visible:ring-2
+           focus-visible:ring-ring focus-visible:ring-offset-2
+           disabled:pointer-events-none disabled:opacity-50;
+  }
+
+  .btn-primary {
+    @apply btn bg-gradient-to-br from-primary to-red-700 text-primary-foreground
+           hover:from-red-400 hover:to-primary shadow-sm;
+  }
+
+  .btn-secondary {
+    @apply btn bg-secondary text-secondary-foreground border border-accent
+           hover:bg-accent hover:text-foreground;
+  }
+
+  .btn-ghost {
+    @apply btn hover:bg-accent hover:text-foreground;
+  }
+
+  .btn-outline {
+    @apply btn border border-primary text-primary bg-transparent
+           hover:bg-primary hover:text-primary-foreground;
+  }
+
+  /* shadcn 风格输入框 */
+  .input {
+    @apply flex h-9 w-full rounded-md bg-muted border border-input px-3 py-1 text-sm
+           text-foreground shadow-sm transition-colors
+           placeholder:text-muted-foreground
+           focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring
+           disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  /* shadcn 风格 Select */
+  .select {
+    @apply flex h-9 w-full rounded-md bg-muted border border-input px-3 py-1 text-sm
+           text-foreground shadow-sm transition-colors cursor-pointer
+           focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring;
+  }
+
+  /* shadcn 风格 Textarea */
+  .textarea {
+    @apply flex min-h-[60px] w-full rounded-md bg-muted border border-input px-3 py-2 text-sm
+           text-foreground shadow-sm transition-colors resize-y
+           placeholder:text-muted-foreground
+           focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring
+           disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  /* shadcn 风格 Label */
+  .label {
+    @apply text-xs font-bold text-muted-foreground;
+  }
+
+  /* shadcn 风格 Card */
+  .card {
+    @apply rounded-lg border border-border bg-card text-card-foreground shadow-sm;
+  }
+
+  /* 消息气泡 */
+  .bubble-player {
+    @apply bg-player-blue rounded-xl rounded-br-sm;
+  }
+
+  .bubble-ai {
+    @apply bg-card border border-ai-blue/30 rounded-xl rounded-bl-sm;
+  }
+
+  .bubble-system {
+    @apply bg-card border border-system-gold/30 rounded-xl rounded-bl-sm;
+  }
+
+  /* 属性条填充 */
+  .bar-hp {
+    @apply bg-gradient-to-r from-hp-gradient-from to-hp-gradient-to;
+  }
+
+  .bar-mp {
+    @apply bg-gradient-to-r from-mp-gradient-from to-mp-gradient-to;
+  }
+
+  .bar-exp {
+    @apply bg-gradient-to-r from-exp-gradient-from to-exp-gradient-to;
+  }
+
+  /* 快捷指令按钮 */
+  .quick-btn {
+    @apply flex-shrink-0 px-3 py-1.5 rounded-md text-xs bg-secondary text-foreground/80
+           border border-border hover:bg-accent hover:text-foreground hover:border-primary/50
+           transition-colors cursor-pointer whitespace-nowrap;
+  }
+
+  /* 道具悬浮提示 */
+  .inv-item {
+    @apply relative cursor-default;
+  }
+
+  .inv-tooltip {
+    @apply absolute left-1/2 -translate-x-1/2 bottom-full mb-2 px-3 py-2 rounded-md
+           bg-popover border border-border text-xs text-popover-foreground
+           shadow-lg z-50 pointer-events-none opacity-0 transition-opacity whitespace-nowrap;
+  }
+
+  .inv-item:hover .inv-tooltip {
+    @apply opacity-100;
+  }
+
+  /* 常驻物品延迟 tooltip（0.5s） */
+  .pinned-tooltip {
+    @apply absolute left-1/2 -translate-x-1/2 bottom-full mb-2 px-3 py-2 rounded-md
+           bg-popover border border-border text-xs text-popover-foreground
+           shadow-lg z-50 pointer-events-none whitespace-nowrap
+           opacity-0 transition-opacity duration-200;
+  }
+
+  .pinned-tooltip.visible {
+    @apply opacity-100;
+  }
+}
+
+/* ========== Tailwind 无法覆盖的自定义样式 ========== */
+
+/* 窗口拖拽区域 */
+.app-region-drag {
+  -webkit-app-region: drag;
+}
+
+.app-region-no-drag {
+  -webkit-app-region: no-drag;
+  position: relative;
+  z-index: 10;
+}
+
+/* 消息淡入动画 */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease;
+}
+
+/* 模态框弹入动画 */
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.95) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.animate-modal-in {
+  animation: modalIn 0.25s ease;
+}
+
+/* 滚动条美化 */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #444;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #666;
+}
+
+/* ========== 死亡动画 ========== */
+@keyframes deathFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-death-fade {
+  animation: deathFade 1s ease forwards;
+}
+
+@keyframes deathContent {
+  from { opacity: 0; transform: scale(0.8) translateY(30px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.animate-death-content {
+  animation: deathContent 0.8s ease 0.3s both;
+}
+
+/* ========== 境界突破动画 ========== */
+@keyframes breakthroughPulse {
+  0% { opacity: 0; transform: scale(0.5); }
+  50% { opacity: 1; transform: scale(1.2); }
+  100% { opacity: 0; transform: scale(1.5); }
+}
+
+@keyframes breakthroughIcon {
+  0% { transform: scale(0) rotate(-180deg); opacity: 0; }
+  50% { transform: scale(1.3) rotate(10deg); opacity: 1; }
+  70% { transform: scale(1) rotate(-5deg); }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+@keyframes breakthroughText {
+  from { opacity: 0; transform: translateY(20px); letter-spacing: 20px; }
+  to { opacity: 1; transform: translateY(0); letter-spacing: 4px; }
+}
+
+@keyframes breakthroughSub {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-breakthrough {
+  animation: breakthroughPulse 3s ease forwards;
+}
+
+.animate-breakthrough-icon {
+  animation: breakthroughIcon 0.8s ease 0.2s both;
+}
+
+.animate-breakthrough-text {
+  animation: breakthroughText 0.6s ease 0.6s both;
+}
+
+.animate-breakthrough-sub {
+  animation: breakthroughSub 0.5s ease 1s both;
+}
+
+/* ========== 选项弹窗动画 ========== */
+@keyframes choicesIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-choices-in {
+  animation: choicesIn 0.3s ease;
+}
+
+/* 选项按钮 */
+.choice-btn {
+  @apply w-full text-left px-4 py-2.5 rounded-md text-sm text-foreground/90
+         bg-secondary border border-border hover:border-primary/50 hover:bg-accent
+         transition-colors cursor-pointer;
+}
+
+.choice-btn:hover {
+  @apply text-foreground;
+}
+
+/* ========== 右键菜单 ========== */
+.ctx-item {
+  @apply px-3 py-2 text-xs text-foreground cursor-pointer hover:bg-accent transition-colors;
+}
+
+.ctx-item:first-child {
+  @apply rounded-t-md;
+}
+
+.ctx-item:last-child {
+  @apply rounded-b-md;
+}
+
+.ctx-item.danger {
+  @apply text-destructive;
+}
+
+/* ========== 背包弹窗物品 ========== */
+.inv-full-item {
+  @apply flex flex-col items-center gap-1 p-3 bg-secondary rounded-lg border border-border
+         hover:border-primary/50 transition-colors cursor-pointer select-none;
+}
+
+.inv-full-item .item-icon {
+  @apply text-2xl;
+}
+
+.inv-full-item .item-name {
+  @apply text-xs text-foreground font-bold;
+}
+
+.inv-full-item .item-count {
+  @apply text-[10px] text-muted-foreground;
+}
