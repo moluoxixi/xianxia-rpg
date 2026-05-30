@@ -12,9 +12,10 @@
  * - 其他兼容 OpenAI 格式的服务商
  */
 
-import type { AIAdapter, AIProviderConfig, AIChatRequest, AIChatResponse } from '../types/ai';
-import https from 'https';
-import http from 'http';
+import type { AIAdapter, AIChatRequest, AIChatResponse, AIProviderConfig } from '@xianxia-rpg/shared';
+import { Buffer } from 'node:buffer';
+import http from 'node:http';
+import https from 'node:https';
 
 export class OpenAIAdapter implements AIAdapter {
   readonly type = 'openai' as const;
@@ -77,7 +78,8 @@ export class OpenAIAdapter implements AIAdapter {
         : undefined;
 
       return { success: true, reply, usage };
-    } catch (err) {
+    }
+    catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
       return { success: false, reply: '', error: errorMessage };
     }
@@ -107,7 +109,8 @@ export class OpenAIAdapter implements AIAdapter {
             const body = Buffer.concat(chunks).toString('utf-8');
             if (res.statusCode && res.statusCode >= 400) {
               reject(new Error(`HTTP ${res.statusCode}: ${body}`));
-            } else {
+            }
+            else {
               resolve(body);
             }
           });

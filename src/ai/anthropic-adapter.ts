@@ -6,9 +6,10 @@
  * - AWS Bedrock Claude (需调整 baseURL 和 auth)
  */
 
-import type { AIAdapter, AIProviderConfig, AIChatRequest, AIChatResponse } from '../types/ai';
-import https from 'https';
-import http from 'http';
+import type { AIAdapter, AIChatRequest, AIChatResponse, AIProviderConfig } from '@xianxia-rpg/shared';
+import { Buffer } from 'node:buffer';
+import http from 'node:http';
+import https from 'node:https';
 
 export class AnthropicAdapter implements AIAdapter {
   readonly type = 'anthropic' as const;
@@ -25,7 +26,8 @@ export class AnthropicAdapter implements AIAdapter {
 
     // 添加历史消息（跳过 system）
     for (const msg of request.messages) {
-      if (msg.role === 'system') continue;
+      if (msg.role === 'system')
+        continue;
       messages.push({ role: msg.role as 'user' | 'assistant', content: msg.content });
     }
 
@@ -64,8 +66,8 @@ export class AnthropicAdapter implements AIAdapter {
       }
 
       // Anthropic 返回格式：content 是数组
-      const reply =
-        data.content
+      const reply
+        = data.content
           ?.filter((block: { type: string }) => block.type === 'text')
           .map((block: { text: string }) => block.text)
           .join('') ?? '';
@@ -79,7 +81,8 @@ export class AnthropicAdapter implements AIAdapter {
         : undefined;
 
       return { success: true, reply, usage };
-    } catch (err) {
+    }
+    catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
       return { success: false, reply: '', error: errorMessage };
     }
@@ -109,7 +112,8 @@ export class AnthropicAdapter implements AIAdapter {
             const body = Buffer.concat(chunks).toString('utf-8');
             if (res.statusCode && res.statusCode >= 400) {
               reject(new Error(`HTTP ${res.statusCode}: ${body}`));
-            } else {
+            }
+            else {
               resolve(body);
             }
           });

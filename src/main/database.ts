@@ -1,6 +1,8 @@
-import fs from 'fs';
-import path from 'path';
-import initSqlJs, { type Database, type SqlJsStatic } from 'sql.js';
+import type { Database, SqlJsStatic } from 'sql.js';
+import { Buffer } from 'node:buffer';
+import fs from 'node:fs';
+import path from 'node:path';
+import initSqlJs from 'sql.js';
 
 interface GameEventPayload {
   id?: string;
@@ -50,7 +52,8 @@ export class GameDatabase {
   constructor(private readonly dbPath: string) {}
 
   async init(): Promise<void> {
-    if (this.db) return;
+    if (this.db)
+      return;
 
     const SQL = await getSqlModule();
     this.db = fs.existsSync(this.dbPath) ? new SQL.Database(fs.readFileSync(this.dbPath)) : new SQL.Database();
@@ -105,13 +108,15 @@ export class GameDatabase {
     const db = this.requireDb();
     const result = db.exec('SELECT run_id, snapshot_json, updated_at FROM game_runs ORDER BY updated_at DESC LIMIT 1');
     const row = result[0]?.values[0];
-    if (!row) return null;
+    if (!row)
+      return null;
 
     const runId = String(row[0]);
     try {
       const snapshot = JSON.parse(String(row[1])) as SaveGamePayload;
       return { runId, snapshot: { ...snapshot, runId }, updatedAt: String(row[2]) };
-    } catch {
+    }
+    catch {
       return null;
     }
   }
@@ -201,7 +206,8 @@ export class GameDatabase {
   private replaceGeneratedEntities(runId: string, entityType: 'scene' | 'npc', entities: unknown, updatedAt: string): void {
     const db = this.requireDb();
     db.run('DELETE FROM generated_entities WHERE run_id = ? AND entity_type = ?', [runId, entityType]);
-    if (!entities || typeof entities !== 'object') return;
+    if (!entities || typeof entities !== 'object')
+      return;
 
     for (const [key, value] of Object.entries(entities as Record<string, unknown>)) {
       db.run(
@@ -213,7 +219,8 @@ export class GameDatabase {
   }
 
   private requireDb(): Database {
-    if (!this.db) throw new Error('游戏数据库尚未初始化');
+    if (!this.db)
+      throw new Error('游戏数据库尚未初始化');
     return this.db;
   }
 

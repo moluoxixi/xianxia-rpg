@@ -1,30 +1,7 @@
+import type { GameHostClient } from './packages/shared';
 import { contextBridge, ipcRenderer } from 'electron';
 
-/** 渲染进程可用的游戏 API */
-export interface GameAPI {
-  /** 发送消息给 AI */
-  sendMessage: (payload: { message: string; history: Array<{ role: string; content: string }> }) => Promise<{
-    success: boolean;
-    reply: string;
-    error?: string;
-  }>;
-  /** 保存游戏数据 */
-  saveGame: (data: unknown) => Promise<{ success: boolean; message: string }>;
-  /** 读取游戏数据 */
-  loadGame: () => Promise<{ success: boolean; data: unknown }>;
-  /** 更新 AI 配置（运行时） */
-  updateAIConfig: (config: Record<string, unknown>) => Promise<{ success: boolean; message: string }>;
-  /** 保存 AI 配置到文件 */
-  saveAIConfig: (config: Record<string, unknown>) => Promise<{ success: boolean; message: string }>;
-  /** 从文件加载 AI 配置 */
-  loadAIConfig: () => Promise<{ success: boolean; data: unknown }>;
-  /** 测试 AI 连接 */
-  testAIConnection: (config: Record<string, unknown>) => Promise<{ success: boolean; reply?: string; error?: string }>;
-  /** 保存死亡存档（仅简单模式） */
-  saveDeathArchive: (data: unknown) => Promise<{ success: boolean; message: string }>;
-}
-
-contextBridge.exposeInMainWorld('gameAPI', {
+const gameAPI: GameHostClient = {
   sendMessage: (payload: { message: string; history: Array<{ role: string; content: string }> }) =>
     ipcRenderer.invoke('send-to-ai', payload),
 
@@ -48,4 +25,6 @@ contextBridge.exposeInMainWorld('gameAPI', {
 
   saveDeathArchive: (data: unknown) =>
     ipcRenderer.invoke('save-death-archive', data),
-});
+};
+
+contextBridge.exposeInMainWorld('gameAPI', gameAPI);

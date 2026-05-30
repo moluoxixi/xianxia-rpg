@@ -17,6 +17,6 @@
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["main.ts", "preload.ts", "src/ai/**/*", "src/main/**/*", "src/types/ai.ts"],
-  "exclude": ["node_modules", "dist", "src/renderer", "renderer.ts"]
+  "include": ["main.ts", "preload.ts", "src/ai/**/*", "src/main/**/*", "packages/shared/**/*"],
+  "exclude": ["node_modules", "dist", "apps/web", "renderer.ts"]
 }

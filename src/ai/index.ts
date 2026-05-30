@@ -7,13 +7,13 @@
 
 import type {
   AIAdapter,
-  AIProviderConfig,
-  AIProviderType,
   AIChatRequest,
   AIChatResponse,
-} from '../types/ai';
-import { OpenAIAdapter } from './openai-adapter';
+  AIProviderConfig,
+  AIProviderType,
+} from '../../packages/shared';
 import { AnthropicAdapter } from './anthropic-adapter';
+import { OpenAIAdapter } from './openai-adapter';
 
 // 适配器注册表
 const adapterMap: Record<AIProviderType, AIAdapter> = {
@@ -50,4 +50,4 @@ export function registerAdapter(type: AIProviderType, adapter: AIAdapter): void 
 }
 
 // 导出类型，供外部使用
-export type { AIProviderConfig, AIChatRequest, AIChatResponse, AIProviderType, AIAdapter };
+export type { AIAdapter, AIChatRequest, AIChatResponse, AIProviderConfig, AIProviderType };

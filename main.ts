@@ -1,8 +1,8 @@
+import type { AIChatRequest, AIProviderConfig } from './src/ai';
+import fs from 'node:fs';
+import path from 'node:path';
 import { app, BrowserWindow, ipcMain } from 'electron';
-import path from 'path';
-import fs from 'fs';
 import { chatWithAI } from './src/ai';
-import type { AIProviderConfig, AIChatRequest } from './src/ai';
 import { GameDatabase } from './src/main/database';
 
 // ========== 配置文件路径 ==========
@@ -133,7 +133,8 @@ function loadAIConfigFromFile(): AIProviderConfig {
       const parsed = JSON.parse(raw);
       return { ...defaultAIConfig, ...parsed };
     }
-  } catch (err) {
+  }
+  catch (err) {
     console.error('加载 AI 配置文件失败:', err);
   }
   return { ...defaultAIConfig };
@@ -161,8 +162,9 @@ function createWindow(): void {
 
   if (devServerUrl) {
     mainWindow.loadURL(devServerUrl);
-  } else {
-    mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
+  }
+  else {
+    mainWindow.loadFile(path.join(__dirname, '../web/index.html'));
   }
 
   if (devServerUrl) {
@@ -182,7 +184,8 @@ ipcMain.handle('save-game-data', async (_event, data: unknown) => {
     await gameDb.init();
     const record = gameDb.saveGame(data && typeof data === 'object' ? (data as Record<string, unknown>) : {});
     return { success: true, message: '存档成功', data: record.snapshot, runId: record.runId };
-  } catch (err) {
+  }
+  catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err);
     return { success: false, message: `存档失败: ${errorMessage}` };
   }
@@ -194,7 +197,8 @@ ipcMain.handle('load-game-data', async () => {
     await gameDb.init();
     const record = gameDb.loadLatestGame();
     return { success: true, data: record?.snapshot ?? null };
-  } catch (err) {
+  }
+  catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err);
     return { success: false, data: null, message: errorMessage };
   }
@@ -213,7 +217,7 @@ ipcMain.handle('send-to-ai', async (_event, payload: { message: string; history:
 
   try {
     const request: AIChatRequest = {
-      messages: history.map((msg) => ({
+      messages: history.map(msg => ({
         role: msg.role as 'system' | 'user' | 'assistant',
         content: msg.content,
       })),
@@ -224,10 +228,12 @@ ipcMain.handle('send-to-ai', async (_event, payload: { message: string; history:
 
     if (result.success) {
       return { success: true, reply: result.reply };
-    } else {
+    }
+    else {
       return { success: false, reply: '', error: result.error ?? '未知错误' };
     }
-  } catch (err) {
+  }
+  catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err);
     return { success: false, reply: '', error: errorMessage };
   }
@@ -247,7 +253,8 @@ ipcMain.handle('save-ai-config', (_event, newConfig: Record<string, unknown>) =>
     // 同步更新运行时配置
     Object.assign(aiConfig, newConfig);
     return { success: true, message: 'AI 配置已保存' };
-  } catch (err) {
+  }
+  catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err);
     return { success: false, message: `保存失败: ${errorMessage}` };
   }
@@ -263,7 +270,8 @@ ipcMain.handle('load-ai-config', () => {
     }
     // 文件不存在，返回当前运行时配置
     return { success: true, data: { ...aiConfig } };
-  } catch (err) {
+  }
+  catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err);
     return { success: false, data: null, message: errorMessage };
   }
@@ -289,10 +297,12 @@ ipcMain.handle('test-ai-connection', async (_event, testConfig: Record<string, u
 
     if (result.success) {
       return { success: true, reply: result.reply };
-    } else {
+    }
+    else {
       return { success: false, error: result.error ?? '连接失败' };
     }
-  } catch (err) {
+  }
+  catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err);
     return { success: false, error: errorMessage };
   }
@@ -310,7 +320,8 @@ ipcMain.handle('save-death-archive', (_event, data: unknown) => {
     const filePath = path.join(deathArchiveDir, `death-${timestamp}.json`);
     fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
     return { success: true, message: '死亡存档已保存' };
-  } catch (err) {
+  }
+  catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err);
     return { success: false, message: `保存失败: ${errorMessage}` };
   }
