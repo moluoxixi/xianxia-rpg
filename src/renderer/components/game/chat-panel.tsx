@@ -38,7 +38,7 @@ export function ChatPanel({ messages, viewportRef, choices, quickActions, input,
       <div className="flex gap-1.5 overflow-x-auto border-t border-border bg-[#12122a] px-3 py-2">
         {quickActions.length === 0
           ? <span className="text-xs text-muted-foreground">等待 AI 生成当前场景快捷指令...</span>
-          : quickActions.map((action) => <button key={action} className="quick-btn" onClick={() => onSend(action)}>{action}</button>)}
+          : quickActions.map((action) => <Button key={action} variant="secondary" size="sm" className="shrink-0 border border-border text-foreground/80 hover:border-primary/50" onClick={() => onSend(action)}>{action}</Button>)}
       </div>
 
       <div className="flex gap-2 border-t border-border bg-card p-3">

@@ -118,6 +118,23 @@ export function cloneInitialState(): GameState {
   return createInitialGameState();
 }
 
+export function getDefaultQuickActions(gameState: GameState): string[] {
+  const scene = gameState.scenes[gameState.currentScene];
+  const actions = ['观察四周', '修炼功法', '整理背包'];
+
+  if (scene?.connectedScenes.length) {
+    actions.push(...scene.connectedScenes.slice(0, 3).map((name) => `前往${name}`));
+  }
+
+  if (scene?.isDangerous) {
+    actions.push('谨慎探查', '准备战斗');
+  } else {
+    actions.push('寻找机缘');
+  }
+
+  return Array.from(new Set(actions)).slice(0, 8);
+}
+
 export function normalizeLoadedGameState(data: unknown): GameState | null {
   if (!data || typeof data !== 'object') return null;
   const loaded = data as Partial<GameState>;

@@ -1,18 +1,9 @@
 import { useMemo, useRef, useState } from 'react';
 import type { NPC } from '@shared/types/scene';
 import { INITIAL_SCENE } from '@shared/types/scene';
-import { AppHeader } from '@/components/game/app-header';
-import { BreakthroughOverlay } from '@/components/game/breakthrough-overlay';
-import { ChatPanel } from '@/components/game/chat-panel';
-import { DeathOverlay } from '@/components/game/death-overlay';
-import { InventoryDialog } from '@/components/game/inventory-dialog';
-import { SettingsDialog } from '@/components/game/settings-dialog';
-import { StatusSidebar } from '@/components/game/status-sidebar';
-import { parseChoices, parseQuickActions, parseResourceChanges, stripChoices } from '@/domain/ai-protocol';
-import { buildPlayerStatus, applyResourceChanges } from '@/domain/game-engine';
-import { cloneInitialState, createMessage, normalizeLoadedGameState } from '@/domain/game-data';
-import type { AppliedEvent, GameState } from '@/domain/game-state';
-import type { AIConfigForm, ChatMessage, Choice, Difficulty, Role } from '@/domain/types';
+import { AppHeader, BreakthroughOverlay, ChatPanel, DeathOverlay, InventoryDialog, SettingsDialog, StatusSidebar } from '@/components/game';
+import { applyResourceChanges, buildPlayerStatus, cloneInitialState, createMessage, getDefaultQuickActions, normalizeLoadedGameState, parseChoices, parseQuickActions, parseResourceChanges, stripChoices } from '@/domain';
+import type { AIConfigForm, AppliedEvent, ChatMessage, Choice, Difficulty, GameState, Role } from '@/domain';
 
 const welcomeMessage: ChatMessage = {
   id: 'welcome',
@@ -32,10 +23,11 @@ const defaultConfig: AIConfigForm = {
 };
 
 export function App() {
-  const [gameState, setGameState] = useState<GameState>(() => cloneInitialState());
+  const initialGameState = useMemo(() => cloneInitialState(), []);
+  const [gameState, setGameState] = useState<GameState>(initialGameState);
   const [messages, setMessages] = useState<ChatMessage[]>([welcomeMessage]);
   const [input, setInput] = useState('');
-  const [quickActions, setQuickActions] = useState<string[]>([]);
+  const [quickActions, setQuickActions] = useState<string[]>(() => getDefaultQuickActions(initialGameState));
   const [choices, setChoices] = useState<Choice[]>([]);
   const [isSending, setIsSending] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -90,12 +82,13 @@ export function App() {
 
       pushMessage('assistant', displayText);
       setChoices(nextChoices);
-      if (quick.actions.length > 0) setQuickActions(quick.actions);
 
       const baseState = structuredClone(gameState);
       baseState.chatHistory = [...gameState.chatHistory, { role: 'user', content: text }, { role: 'assistant', content: displayText }];
       const applied = changes.length > 0 ? applyResourceChanges(baseState, changes) : { nextState: baseState, summary: '', events: [] };
       const nextState = applied.nextState;
+
+      setQuickActions(quick.actions.length > 0 ? quick.actions : getDefaultQuickActions(nextState));
 
       if (applied.summary) pushMessage('system', applied.summary);
       if (applied.breakthroughRealm) {
@@ -150,6 +143,7 @@ export function App() {
     const loadedState = normalizeLoadedGameState(result.data);
     if (result.success && loadedState) {
       setGameState(loadedState);
+      setQuickActions(getDefaultQuickActions(loadedState));
       pushMessage('system', '读档成功。');
     } else {
       pushMessage('system', '暂无存档数据。');
@@ -160,7 +154,7 @@ export function App() {
     const nextState = cloneInitialState();
     setGameState(nextState);
     setMessages([createMessage('system', welcomeMessage.content)]);
-    setQuickActions([]);
+    setQuickActions(getDefaultQuickActions(nextState));
     setChoices([]);
     persistGame(nextState);
   }
