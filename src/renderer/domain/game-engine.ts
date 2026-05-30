@@ -23,6 +23,8 @@ export function applyResourceChanges(state: GameState, changes: ResourceChange[]
   const events: AppliedEvent[] = [];
   let breakthroughRealm: string | undefined;
 
+  predefineScenes(next, changes);
+
   for (const change of changes) {
     const adjudication = adjudicateResourceChange(next, change);
     if (!adjudication.accepted) {
@@ -95,6 +97,79 @@ function applyOneChange(next: GameState, change: ResourceChange): string {
   }
 }
 
+function predefineScenes(next: GameState, changes: ResourceChange[]): void {
+  for (const change of changes) {
+    if (change.type !== 'scene_define' || !change.scene_name) continue;
+    const previous = next.scenes[change.scene_name];
+    if (!previous) {
+      next.scenes[change.scene_name] = createSceneFromChange(next, change);
+    }
+    linkScenes(next, next.currentScene, change.scene_name);
+  }
+}
+
+function createSceneFromChange(next: GameState, change: ResourceChange): Scene {
+  return mergeSceneFromChange(next, undefined, change);
+}
+
+function mergeSceneFromChange(next: GameState, previous: Scene | undefined, change: ResourceChange): Scene {
+  const sceneName = change.scene_name ?? previous?.name ?? '未知场景';
+  const connectedScenes = mergeUnique([
+    ...(previous?.connectedScenes ?? []),
+    ...(change.scene_connected ?? []),
+    next.currentScene,
+  ].filter((name) => name && name !== sceneName));
+
+  return {
+    name: sceneName,
+    type: (change.scene_type as Scene['type']) ?? previous?.type ?? 'wild',
+    region: change.scene_region ?? previous?.region ?? next.character.sect,
+    description: change.scene_description ?? previous?.description ?? '',
+    connectedScenes,
+    npcs: previous?.npcs ?? [],
+    availableResources: change.scene_resources ?? previous?.availableResources ?? [],
+    isDangerous: change.scene_dangerous ?? previous?.isDangerous ?? false,
+  };
+}
+
+function linkScenes(next: GameState, from: string, to: string): void {
+  if (!from || !to || from === to) return;
+  const fromScene = next.scenes[from];
+  const toScene = next.scenes[to];
+  if (fromScene && !isSceneConnected(fromScene, to)) fromScene.connectedScenes.push(to);
+  if (toScene && !isSceneConnected(toScene, from)) toScene.connectedScenes.push(from);
+}
+
+function isSceneConnected(scene: Scene, target: string): boolean {
+  return scene.connectedScenes.some((name) => namesReferToSameScene(name, target));
+}
+
+function resolveSceneName(state: GameState, name: string): string {
+  const trimmed = name.trim();
+  if (!trimmed) return trimmed;
+  if (state.scenes[trimmed]) return trimmed;
+  const existing = Object.keys(state.scenes).find((sceneName) => namesReferToSameScene(sceneName, trimmed));
+  return existing ?? trimmed;
+}
+
+function namesReferToSameScene(left: string, right: string): boolean {
+  const a = normalizeSceneName(left);
+  const b = normalizeSceneName(right);
+  return a === b || a.endsWith(b) || b.endsWith(a);
+}
+
+function normalizeSceneName(name: string): string {
+  return name.replace(/[\s·・,，。.!！?？、]/g, '').replace(/^(七玄门|黄枫谷|越国|天南)/, '');
+}
+
+function mergeUnique(items: string[]): string[] {
+  const result: string[] = [];
+  for (const item of items) {
+    if (!result.some((existing) => namesReferToSameScene(existing, item))) result.push(item);
+  }
+  return result;
+}
+
 function adjudicateResourceChange(state: GameState, change: ResourceChange): AdjudicationResult {
   if (state.isDead && change.type !== 'hp') {
     return { accepted: false, reason: '角色已身殒，无法继续产生新的世界变化。' };
@@ -123,14 +198,15 @@ function adjudicateItemRemove(state: GameState, change: ResourceChange): Adjudic
 function adjudicateLocation(state: GameState, change: ResourceChange): AdjudicationResult {
   const target = String(change.value ?? '');
   if (!target) return { accepted: false, reason: '目标场景缺失，无法移动。' };
-  if (target === state.currentScene) return { accepted: true };
+  const resolvedTarget = resolveSceneName(state, target);
+  if (resolvedTarget === state.currentScene) return { accepted: true };
   const currentScene = state.scenes[state.currentScene];
-  const targetScene = state.scenes[target];
+  const targetScene = state.scenes[resolvedTarget];
   if (!targetScene) return { accepted: true, reason: '未记录场景可作为探索发现，但会创建空白场景等待 AI 补全。' };
-  if (!currentScene || currentScene.connectedScenes.includes(target)) return { accepted: true };
+  if (!currentScene || isSceneConnected(currentScene, resolvedTarget)) return { accepted: true };
 
   const chance = currentScene.isDangerous || targetScene.isDangerous ? 0.35 : 0.12;
-  return rollChance(chance, `你试图前往未关联场景「${target}」，但路线、身份或地形尚未支撑这次转移。`);
+  return rollChance(chance, `你试图前往未关联场景「${resolvedTarget}」，但路线、身份或地形尚未支撑这次转移。`);
 }
 
 function adjudicateNpcAdd(state: GameState, change: ResourceChange): AdjudicationResult {
@@ -242,8 +318,10 @@ function updateRealm(next: GameState, change: ResourceChange): string {
 }
 
 function updateLocation(next: GameState, change: ResourceChange): string {
-  const newLoc = String(change.value ?? '');
+  const requestedLoc = String(change.value ?? '');
+  const newLoc = resolveSceneName(next, requestedLoc);
   if (!newLoc) return '';
+  const from = next.currentScene;
   next.character.location = newLoc;
   next.currentScene = newLoc;
   if (!next.scenes[newLoc]) {
@@ -258,6 +336,7 @@ function updateLocation(next: GameState, change: ResourceChange): string {
       isDangerous: false,
     };
   }
+  linkScenes(next, from, newLoc);
   return `位置 -> ${newLoc}`;
 }
 
@@ -281,26 +360,19 @@ function defineScene(next: GameState, change: ResourceChange): string {
   const sceneName = change.scene_name ?? '';
   if (!sceneName) return '';
   const previous = next.scenes[sceneName];
-  next.scenes[sceneName] = {
-    name: sceneName,
-    type: (change.scene_type as Scene['type']) ?? previous?.type ?? 'wild',
-    region: change.scene_region ?? previous?.region ?? '',
-    description: change.scene_description ?? previous?.description ?? '',
-    connectedScenes: change.scene_connected ?? previous?.connectedScenes ?? [],
-    npcs: previous?.npcs ?? [],
-    availableResources: change.scene_resources ?? previous?.availableResources ?? [],
-    isDangerous: change.scene_dangerous ?? previous?.isDangerous ?? false,
-  };
+  next.scenes[sceneName] = mergeSceneFromChange(next, previous, change);
+  linkScenes(next, next.currentScene, sceneName);
   return previous ? `场景更新：${sceneName}` : `发现新场景：${sceneName}`;
 }
 
 function addNpc(next: GameState, change: ResourceChange): string {
   const npcId = change.npc_id ?? `npc_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const npcLocation = resolveSceneName(next, change.npc_location ?? next.currentScene);
   next.npcs[npcId] = {
     id: npcId,
     name: change.npc_name ?? '未知人物',
     role: (change.npc_role as NPC['role']) ?? 'story',
-    location: change.npc_location ?? next.currentScene,
+    location: npcLocation,
     realm: change.npc_realm ?? '凡人',
     sect: change.npc_sect,
     favorability: next.npcs[npcId]?.favorability ?? 0,
@@ -318,7 +390,7 @@ function addNpc(next: GameState, change: ResourceChange): string {
 function updateNpc(next: GameState, change: ResourceChange): string {
   const npc = change.npc_id ? next.npcs[change.npc_id] : undefined;
   if (!npc) return '';
-  if (change.npc_location) npc.location = change.npc_location;
+  if (change.npc_location) npc.location = resolveSceneName(next, change.npc_location);
   if (change.npc_description) npc.description = change.npc_description;
   if (change.npc_realm) npc.realm = change.npc_realm;
   if (typeof change.npc_attackable === 'boolean') npc.attackable = change.npc_attackable;
