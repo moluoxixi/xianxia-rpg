@@ -21,8 +21,6 @@ pnpm-debug.log*
 data/
 death-archives/
 
-.idea/workspace.xml
-.idea/tasks.xml
-.idea/shelf/
+.idea/
 .DS_Store
 Thumbs.db

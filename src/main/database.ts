@@ -2,6 +2,16 @@ import fs from 'fs';
 import path from 'path';
 import initSqlJs, { type Database, type SqlJsStatic } from 'sql.js';
 
+interface GameEventPayload {
+  id?: string;
+  type?: string;
+  summary?: string;
+  payload?: unknown;
+  accepted?: boolean;
+  reason?: string;
+  createdAt?: string;
+}
+
 interface SaveGamePayload {
   runId?: string;
   character?: { name?: string; realm?: string; location?: string };
@@ -11,6 +21,7 @@ interface SaveGamePayload {
   inventory?: unknown;
   skills?: unknown;
   chatHistory?: unknown;
+  pendingEvents?: GameEventPayload[];
   [key: string]: unknown;
 }
 
@@ -42,38 +53,9 @@ export class GameDatabase {
     if (this.db) return;
 
     const SQL = await getSqlModule();
-    if (fs.existsSync(this.dbPath)) {
-      const bytes = fs.readFileSync(this.dbPath);
-      this.db = new SQL.Database(bytes);
-    } else {
-      this.db = new SQL.Database();
-    }
-
-    this.db.run(`
-      CREATE TABLE IF NOT EXISTS game_runs (
-        run_id TEXT PRIMARY KEY,
-        player_name TEXT NOT NULL,
-        realm TEXT NOT NULL,
-        current_scene TEXT NOT NULL,
-        snapshot_json TEXT NOT NULL,
-        generated_world_json TEXT NOT NULL,
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL
-      );
-    `);
-
-    this.db.run(`
-      CREATE TABLE IF NOT EXISTS generated_entities (
-        id TEXT PRIMARY KEY,
-        run_id TEXT NOT NULL,
-        entity_type TEXT NOT NULL,
-        entity_key TEXT NOT NULL,
-        entity_json TEXT NOT NULL,
-        updated_at TEXT NOT NULL,
-        FOREIGN KEY (run_id) REFERENCES game_runs(run_id) ON DELETE CASCADE
-      );
-    `);
-
+    this.db = fs.existsSync(this.dbPath) ? new SQL.Database(fs.readFileSync(this.dbPath)) : new SQL.Database();
+    this.db.run('PRAGMA foreign_keys = ON');
+    this.migrate();
     this.persist();
   }
 
@@ -81,7 +63,10 @@ export class GameDatabase {
     const db = this.requireDb();
     const now = new Date().toISOString();
     const runId = typeof data.runId === 'string' && data.runId ? data.runId : createRunId();
+    const pendingEvents = Array.isArray(data.pendingEvents) ? data.pendingEvents : [];
     const snapshot: SaveGamePayload = { ...data, runId };
+    delete snapshot.pendingEvents;
+
     const playerName = data.character?.name ?? '韩立';
     const realm = data.character?.realm ?? '炼气期一层';
     const currentScene = data.currentScene ?? data.character?.location ?? '未知场景';
@@ -109,6 +94,8 @@ export class GameDatabase {
 
     this.replaceGeneratedEntities(runId, 'scene', data.scenes, now);
     this.replaceGeneratedEntities(runId, 'npc', data.npcs, now);
+    this.appendTurn(runId, snapshot, now);
+    this.appendEvents(runId, pendingEvents, now);
     this.persist();
 
     return { runId, snapshot, updatedAt: now };
@@ -126,6 +113,88 @@ export class GameDatabase {
       return { runId, snapshot: { ...snapshot, runId }, updatedAt: String(row[2]) };
     } catch {
       return null;
+    }
+  }
+
+  private migrate(): void {
+    const db = this.requireDb();
+    db.run(`
+      CREATE TABLE IF NOT EXISTS game_runs (
+        run_id TEXT PRIMARY KEY,
+        player_name TEXT NOT NULL,
+        realm TEXT NOT NULL,
+        current_scene TEXT NOT NULL,
+        snapshot_json TEXT NOT NULL,
+        generated_world_json TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+    `);
+    db.run(`
+      CREATE TABLE IF NOT EXISTS generated_entities (
+        id TEXT PRIMARY KEY,
+        run_id TEXT NOT NULL,
+        entity_type TEXT NOT NULL,
+        entity_key TEXT NOT NULL,
+        entity_json TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        FOREIGN KEY (run_id) REFERENCES game_runs(run_id) ON DELETE CASCADE
+      );
+    `);
+    db.run(`
+      CREATE TABLE IF NOT EXISTS game_turns (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        run_id TEXT NOT NULL,
+        turn_index INTEGER NOT NULL,
+        current_scene TEXT NOT NULL,
+        player_summary TEXT NOT NULL,
+        snapshot_json TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (run_id) REFERENCES game_runs(run_id) ON DELETE CASCADE
+      );
+    `);
+    db.run(`
+      CREATE TABLE IF NOT EXISTS game_events (
+        event_id TEXT PRIMARY KEY,
+        run_id TEXT NOT NULL,
+        event_type TEXT NOT NULL,
+        summary TEXT NOT NULL,
+        payload_json TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (run_id) REFERENCES game_runs(run_id) ON DELETE CASCADE
+      );
+    `);
+    db.run('CREATE INDEX IF NOT EXISTS idx_game_turns_run ON game_turns(run_id, turn_index)');
+    db.run('CREATE INDEX IF NOT EXISTS idx_game_events_run ON game_events(run_id, created_at)');
+  }
+
+  private appendTurn(runId: string, snapshot: SaveGamePayload, createdAt: string): void {
+    const db = this.requireDb();
+    const result = db.exec('SELECT COALESCE(MAX(turn_index), 0) + 1 FROM game_turns WHERE run_id = ?', [runId]);
+    const turnIndex = Number(result[0]?.values[0]?.[0] ?? 1);
+    const character = snapshot.character;
+    const playerSummary = `${character?.name ?? '韩立'} / ${character?.realm ?? '炼气期一层'} / ${snapshot.currentScene ?? character?.location ?? '未知场景'}`;
+    db.run(
+      `INSERT INTO game_turns (run_id, turn_index, current_scene, player_summary, snapshot_json, created_at)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [runId, turnIndex, snapshot.currentScene ?? character?.location ?? '未知场景', playerSummary, JSON.stringify(snapshot), createdAt],
+    );
+  }
+
+  private appendEvents(runId: string, events: GameEventPayload[], createdAt: string): void {
+    const db = this.requireDb();
+    for (const event of events) {
+      const eventId = event.id ?? `${runId}:event:${createdAt}:${Math.random().toString(36).slice(2, 8)}`;
+      const payload = {
+        payload: event.payload ?? event,
+        accepted: event.accepted ?? true,
+        reason: event.reason ?? null,
+      };
+      db.run(
+        `INSERT OR IGNORE INTO game_events (event_id, run_id, event_type, summary, payload_json, created_at)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [eventId, runId, event.type ?? 'unknown', event.summary ?? '', JSON.stringify(payload), event.createdAt ?? createdAt],
+      );
     }
   }
 

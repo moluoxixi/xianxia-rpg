@@ -1,0 +1,61 @@
+export type Role = 'user' | 'assistant' | 'system';
+export type Difficulty = 'normal' | 'hard';
+
+export interface CharacterInfo {
+  name: string;
+  realm: string;
+  sect: string;
+  location: string;
+}
+
+export interface CharacterStats {
+  hp: number;
+  maxHp: number;
+  mp: number;
+  maxMp: number;
+  exp: number;
+  maxExp: number;
+}
+
+export interface InventoryItem {
+  id?: string;
+  name: string;
+  count: number;
+  type?: 'pill' | 'spirit_stone' | 'weapon' | 'material' | 'talisman' | 'manual' | 'quest' | 'misc';
+  rarity?: 'common' | 'low' | 'middle' | 'high' | 'top' | 'rare';
+  description?: string;
+  usable?: boolean;
+  sourceScene?: string;
+  discoveredAt?: string;
+}
+
+export interface Skill {
+  id?: string;
+  name: string;
+  level: string;
+  type?: 'main' | 'combat' | 'movement' | 'alchemy' | 'crafting' | 'spiritual_sense' | 'support';
+  proficiency?: number;
+  source?: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  role: Role;
+  content: string;
+  time: string;
+}
+
+export interface Choice {
+  index: number;
+  text: string;
+}
+
+export interface AIConfigForm {
+  type: string;
+  baseURL: string;
+  apiKey: string;
+  model: string;
+  maxTokens: string;
+  temperature: string;
+  systemPrompt: string;
+}
