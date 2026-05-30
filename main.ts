@@ -5,9 +5,8 @@ import { app, BrowserWindow, ipcMain } from 'electron';
 import { chatWithAI } from './src/ai';
 import { GameDatabase } from './src/main/database';
 
-// ========== 配置文件路径 ==========
+// ========== 本地数据路径 ==========
 const configDir = path.join(app.getPath('userData'), 'data');
-const aiConfigPath = path.join(configDir, 'ai-config.json');
 const gameDb = new GameDatabase(path.join(configDir, 'game-runs.sqlite'));
 
 function initializeDataDir(): void {
@@ -20,7 +19,7 @@ initializeDataDir();
 void gameDb.init().catch((err) => {
   console.error('初始化游戏数据库失败:', err);
 });
-// ========== AI 配置（优先从文件加载） ==========
+// ========== AI 配置（运行时从数据库同步） ==========
 const defaultAIConfig: AIProviderConfig = {
   type: 'openai',
   baseURL: 'https://coderelay.cn/v1',
@@ -126,21 +125,14 @@ const defaultAIConfig: AIProviderConfig = {
 - 如果没有任何资源变化也没有快捷指令需要更新，则都不需要输出`,
 };
 
-function loadAIConfigFromFile(): AIProviderConfig {
-  try {
-    if (fs.existsSync(aiConfigPath)) {
-      const raw = fs.readFileSync(aiConfigPath, 'utf-8');
-      const parsed = JSON.parse(raw);
-      return { ...defaultAIConfig, ...parsed };
-    }
-  }
-  catch (err) {
-    console.error('加载 AI 配置文件失败:', err);
-  }
-  return { ...defaultAIConfig };
-}
+const aiConfig: AIProviderConfig = { ...defaultAIConfig };
 
-const aiConfig: AIProviderConfig = loadAIConfigFromFile();
+function loadPersistedAIConfig(): void {
+  const storedConfig = gameDb.loadAIConfig();
+  if (storedConfig) {
+    Object.assign(aiConfig, storedConfig);
+  }
+}
 
 // ========== 窗口管理 ==========
 let mainWindow: BrowserWindow | null = null;
@@ -182,7 +174,7 @@ function createWindow(): void {
 ipcMain.handle('save-game-data', async (_event, data: unknown) => {
   try {
     await gameDb.init();
-    const record = gameDb.saveGame(data && typeof data === 'object' ? (data as Record<string, unknown>) : {});
+    const record = gameDb.saveGame(data as Record<string, unknown>);
     return { success: true, message: '存档成功', data: record.snapshot, runId: record.runId };
   }
   catch (err) {
@@ -201,6 +193,56 @@ ipcMain.handle('load-game-data', async () => {
   catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err);
     return { success: false, data: null, message: errorMessage };
+  }
+});
+
+/** 按存档 ID 读取游戏数据 */
+ipcMain.handle('load-game-data-by-run-id', async (_event, runId: string) => {
+  try {
+    await gameDb.init();
+    const record = gameDb.loadGameByRunId(runId);
+    return { success: true, data: record?.snapshot ?? null };
+  }
+  catch (err) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    return { success: false, data: null, message: errorMessage };
+  }
+});
+
+/** 列出游戏存档 */
+ipcMain.handle('list-game-saves', async () => {
+  try {
+    await gameDb.init();
+    return { success: true, data: gameDb.listGameSaves() };
+  }
+  catch (err) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    return { success: false, data: [], message: errorMessage };
+  }
+});
+
+/** 保存当前存档的背包置顶项 */
+ipcMain.handle('save-inventory-pins', async (_event, payload: { runId: string; pinnedKeys: string[] }) => {
+  try {
+    await gameDb.init();
+    const record = gameDb.saveInventoryPins(payload);
+    return { success: true, message: '背包置顶已保存', data: record.pinnedKeys, runId: record.runId };
+  }
+  catch (err) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    return { success: false, message: `背包置顶保存失败: ${errorMessage}` };
+  }
+});
+
+/** 读取当前存档的背包置顶项 */
+ipcMain.handle('load-inventory-pins', async (_event, runId: string) => {
+  try {
+    await gameDb.init();
+    return { success: true, data: gameDb.loadInventoryPins(runId) };
+  }
+  catch (err) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    return { success: false, data: [], message: errorMessage };
   }
 });
 
@@ -245,12 +287,11 @@ ipcMain.handle('update-ai-config', (_event, newConfig: Partial<AIProviderConfig>
   return { success: true, message: `AI 配置已更新: ${aiConfig.type} / ${aiConfig.model}` };
 });
 
-/** 保存 AI 配置到文件 */
-ipcMain.handle('save-ai-config', (_event, newConfig: Record<string, unknown>) => {
+/** 保存 AI 配置到数据库 */
+ipcMain.handle('save-ai-config', async (_event, newConfig: Record<string, unknown>) => {
   try {
-    // 写入文件
-    fs.writeFileSync(aiConfigPath, JSON.stringify(newConfig, null, 2), 'utf-8');
-    // 同步更新运行时配置
+    await gameDb.init();
+    gameDb.saveAIConfig(newConfig);
     Object.assign(aiConfig, newConfig);
     return { success: true, message: 'AI 配置已保存' };
   }
@@ -260,16 +301,11 @@ ipcMain.handle('save-ai-config', (_event, newConfig: Record<string, unknown>) =>
   }
 });
 
-/** 从文件加载 AI 配置 */
-ipcMain.handle('load-ai-config', () => {
+/** 从数据库加载 AI 配置 */
+ipcMain.handle('load-ai-config', async () => {
   try {
-    if (fs.existsSync(aiConfigPath)) {
-      const raw = fs.readFileSync(aiConfigPath, 'utf-8');
-      const data = JSON.parse(raw);
-      return { success: true, data };
-    }
-    // 文件不存在，返回当前运行时配置
-    return { success: true, data: { ...aiConfig } };
+    await gameDb.init();
+    return { success: true, data: gameDb.loadAIConfig() ?? { ...aiConfig } };
   }
   catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err);
@@ -308,18 +344,12 @@ ipcMain.handle('test-ai-connection', async (_event, testConfig: Record<string, u
   }
 });
 
-// ========== 死亡存档（仅简单模式） ==========
-const deathArchiveDir = path.join(configDir, 'death-archives');
-if (!fs.existsSync(deathArchiveDir)) {
-  fs.mkdirSync(deathArchiveDir, { recursive: true });
-}
-
-ipcMain.handle('save-death-archive', (_event, data: unknown) => {
+// ========== 死亡归档 ==========
+ipcMain.handle('save-death-archive', async (_event, data: unknown) => {
   try {
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const filePath = path.join(deathArchiveDir, `death-${timestamp}.json`);
-    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
-    return { success: true, message: '死亡存档已保存' };
+    await gameDb.init();
+    const record = gameDb.saveDeathArchive(data as Record<string, unknown>);
+    return { success: true, message: '死亡存档已保存', data: record.snapshot, runId: record.runId };
   }
   catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err);
@@ -331,6 +361,7 @@ ipcMain.handle('save-death-archive', (_event, data: unknown) => {
 
 app.whenReady().then(async () => {
   await gameDb.init();
+  loadPersistedAIConfig();
   createWindow();
 });
 

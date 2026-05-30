@@ -5,6 +5,8 @@ export type {
   DeathOverlayProps,
   HeaderButtonProps,
   InventoryDialogProps,
+  InventoryItemEntryProps,
+  MainMenuProps,
   MessageBubbleProps,
   SettingsDialogProps,
   StatusSidebarProps,

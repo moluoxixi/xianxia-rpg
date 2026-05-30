@@ -1,5 +1,5 @@
 import type { GameState } from './game-state';
-import type { ChatMessage, Role } from './types';
+import type { ChatMessage, InventoryItem, InventoryViewItem, Role } from './types';
 import { INITIAL_SCENE } from '@xianxia-rpg/shared';
 
 export const pinnedItems = ['下品灵石', '黄龙丹', '长剑'];
@@ -88,6 +88,20 @@ export function createMessage(role: Role, content: string): ChatMessage {
 
 export function getItemIcon(name: string): string {
   return itemIcons[name] ?? '物';
+}
+
+export function getInventoryItemKey(item: InventoryItem): string {
+  return item.name;
+}
+
+export function createInventoryViewItems(items: InventoryItem[], pinnedKeys: string[]): InventoryViewItem[] {
+  const pinnedSet = new Set(pinnedKeys);
+  return items
+    .map((item, index) => {
+      const key = getInventoryItemKey(item);
+      return { key, item, index, pinned: pinnedSet.has(key) };
+    })
+    .sort((left, right) => Number(right.pinned) - Number(left.pinned));
 }
 
 export function createInitialGameState(): GameState {

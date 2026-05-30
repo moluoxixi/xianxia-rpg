@@ -1,10 +1,10 @@
 import type { AppHeaderProps, HeaderButtonProps } from './types';
-import { Archive, Save, Settings, Sparkles } from 'lucide-react';
+import { Archive, Home, Save, Settings, Sparkles } from 'lucide-react';
 import React from 'react';
 import { Button } from '@/components/ui';
 import { cn } from '@/lib/utils';
 
-export function AppHeader({ difficulty, onOpenSettings, onSave, onLoad }: AppHeaderProps) {
+export function AppHeader({ difficulty, onLoad, onOpenMenu, onOpenSettings, onSave }: AppHeaderProps) {
   return (
     <header className="app-region-drag flex items-center justify-between border-b-2 border-primary bg-[#13233d] px-5 py-2.5">
       <div className="flex items-center gap-3">
@@ -14,6 +14,7 @@ export function AppHeader({ difficulty, onOpenSettings, onSave, onLoad }: AppHea
       </div>
       <div className="app-region-no-drag flex items-center gap-2">
         <DifficultyBadge difficulty={difficulty} />
+        <HeaderButton onClick={onOpenMenu} icon={<Home className="h-4 w-4" />} label="主界面" />
         <HeaderButton onClick={onOpenSettings} icon={<Settings className="h-4 w-4" />} label="设置" />
         <HeaderButton onClick={onSave} icon={<Save className="h-4 w-4" />} label="存档" />
         <HeaderButton onClick={onLoad} icon={<Archive className="h-4 w-4" />} label="读档" />

@@ -3,9 +3,22 @@ import type { ReactNode } from 'react';
 import type { StatusSidebarProps } from './types';
 import { BookOpen, ChevronRight, Heart, Map, MessageSquare, Package, Shield, Sparkles, User, Waves } from 'lucide-react';
 import { Card } from '@/components/ui';
-import { getItemIcon, itemDescriptions, pinnedItems, statPercent } from '@/domain';
+import { InventoryItemEntry } from './inventory-item-entry';
+import { createInventoryViewItems, statPercent } from '@/domain';
 
-export function StatusSidebar({ gameState, sceneNpcs, onOpenInventory }: StatusSidebarProps) {
+export function StatusSidebar({
+  gameState,
+  onDropInventoryItem,
+  onOpenInventory,
+  onSelectInventoryItem,
+  onToggleInventoryPin,
+  onUseInventoryItem,
+  pinnedInventoryKeys,
+  sceneNpcs,
+  selectedInventoryKey,
+}: StatusSidebarProps) {
+  const inventoryItems = createInventoryViewItems(gameState.inventory, pinnedInventoryKeys);
+
   return (
     <aside className="w-[320px] shrink-0 overflow-y-auto bg-[#14142e] p-4">
       <Card className="mb-4 p-3">
@@ -32,20 +45,27 @@ export function StatusSidebar({ gameState, sceneNpcs, onOpenInventory }: StatusS
         </div>
       </Card>
 
-      <Card className="mb-4 cursor-pointer p-3 transition-colors hover:border-primary/50" onClick={onOpenInventory}>
-        <PanelTitle icon={<Package className="h-4 w-4" />} title="背包" action="点击查看全部" />
-        <div className="grid grid-cols-2 gap-1.5">
-          {pinnedItems.map((name) => {
-            const item = gameState.inventory.find(entry => entry.name === name);
-            return (
-              <div key={name} title={itemDescriptions[name]} className="rounded bg-secondary px-2 py-1.5 text-center text-xs text-foreground/80">
-                {getItemIcon(name)}
-                {' '}
-                {name}
-                {item ? ` ×${item.count}` : ''}
-              </div>
-            );
-          })}
+      <Card className="mb-4 p-3 transition-colors hover:border-primary/50">
+        <button type="button" className="w-full text-left" onClick={() => onOpenInventory()}>
+          <PanelTitle icon={<Package className="h-4 w-4" />} title="背包" action="点击查看全部" />
+        </button>
+        <div className="flex max-h-44 flex-col gap-1.5 overflow-y-auto pr-1">
+          {inventoryItems.length === 0
+            ? <div className="rounded border border-dashed border-border py-4 text-center text-xs text-muted-foreground">背包空空如也</div>
+            : inventoryItems.map(entry => (
+                <InventoryItemEntry
+                  key={`${entry.key}-${entry.index}`}
+                  compact
+                  item={entry.item}
+                  index={entry.index}
+                  pinned={entry.pinned}
+                  selected={entry.key === selectedInventoryKey}
+                  onViewDetails={onSelectInventoryItem}
+                  onUseItem={onUseInventoryItem}
+                  onDropItem={onDropInventoryItem}
+                  onTogglePin={onToggleInventoryPin}
+                />
+              ))}
         </div>
       </Card>
 

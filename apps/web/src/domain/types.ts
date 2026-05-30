@@ -29,6 +29,13 @@ export interface InventoryItem {
   discoveredAt?: string;
 }
 
+export interface InventoryViewItem {
+  key: string;
+  item: InventoryItem;
+  index: number;
+  pinned: boolean;
+}
+
 export interface Skill {
   id?: string;
   name: string;

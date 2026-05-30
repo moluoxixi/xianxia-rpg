@@ -1,4 +1,5 @@
 import type { Database, SqlJsStatic } from 'sql.js';
+import type { GameSaveSummary } from '../../packages/shared/index';
 import { Buffer } from 'node:buffer';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -32,6 +33,26 @@ export interface GameSaveRecord {
   snapshot: SaveGamePayload;
   updatedAt: string;
 }
+
+export interface DeathArchiveRecord {
+  archiveId: string;
+  runId: string;
+  snapshot: SaveGamePayload;
+  createdAt: string;
+}
+
+export interface InventoryPinsPayload {
+  runId: string;
+  pinnedKeys: string[];
+}
+
+export interface InventoryPinsRecord {
+  runId: string;
+  pinnedKeys: string[];
+  updatedAt: string;
+}
+
+export type AppSettingsPayload = Record<string, unknown>;
 
 let sqlModulePromise: Promise<SqlJsStatic> | null = null;
 
@@ -121,6 +142,102 @@ export class GameDatabase {
     }
   }
 
+  loadGameByRunId(runId: string): GameSaveRecord | null {
+    const db = this.requireDb();
+    const result = db.exec('SELECT run_id, snapshot_json, updated_at FROM game_runs WHERE run_id = ?', [runId]);
+    const row = result[0]?.values[0];
+    if (!row)
+      return null;
+
+    const savedRunId = String(row[0]);
+    const snapshot = JSON.parse(String(row[1])) as SaveGamePayload;
+    return { runId: savedRunId, snapshot: { ...snapshot, runId: savedRunId }, updatedAt: String(row[2]) };
+  }
+
+  listGameSaves(): GameSaveSummary[] {
+    const db = this.requireDb();
+    const result = db.exec(
+      `SELECT run_id, player_name, realm, current_scene, updated_at
+       FROM game_runs
+       ORDER BY updated_at DESC`,
+    );
+    const rows = result[0]?.values ?? [];
+
+    return rows.map(row => ({
+      runId: String(row[0]),
+      playerName: String(row[1]),
+      realm: String(row[2]),
+      currentScene: String(row[3]),
+      updatedAt: String(row[4]),
+    }));
+  }
+
+  saveDeathArchive(data: SaveGamePayload): DeathArchiveRecord {
+    const db = this.requireDb();
+    const createdAt = new Date().toISOString();
+    const runId = data.runId || createRunId();
+    const archiveId = `death_${createdAt.replace(/[:.]/g, '-')}_${Math.random().toString(36).slice(2, 8)}`;
+    const snapshot: SaveGamePayload = { ...data, runId };
+
+    db.run(
+      `INSERT INTO death_archives (archive_id, run_id, snapshot_json, created_at)
+       VALUES (?, ?, ?, ?)`,
+      [archiveId, runId, JSON.stringify(snapshot), createdAt],
+    );
+    this.persist();
+
+    return { archiveId, runId, snapshot, createdAt };
+  }
+
+  saveInventoryPins(payload: InventoryPinsPayload): InventoryPinsRecord {
+    const db = this.requireDb();
+    const updatedAt = new Date().toISOString();
+
+    db.run(
+      `INSERT INTO inventory_pins (run_id, pinned_keys_json, updated_at)
+       VALUES (?, ?, ?)
+       ON CONFLICT(run_id) DO UPDATE SET
+         pinned_keys_json = excluded.pinned_keys_json,
+         updated_at = excluded.updated_at`,
+      [payload.runId, JSON.stringify(payload.pinnedKeys), updatedAt],
+    );
+    this.persist();
+
+    return { runId: payload.runId, pinnedKeys: payload.pinnedKeys, updatedAt };
+  }
+
+  loadInventoryPins(runId: string): string[] {
+    const db = this.requireDb();
+    const result = db.exec('SELECT pinned_keys_json FROM inventory_pins WHERE run_id = ?', [runId]);
+    const row = result[0]?.values[0];
+    if (!row)
+      return [];
+    return JSON.parse(String(row[0])) as string[];
+  }
+
+  saveAIConfig(config: AppSettingsPayload): void {
+    const db = this.requireDb();
+    const now = new Date().toISOString();
+    db.run(
+      `INSERT INTO app_settings (setting_key, value_json, updated_at)
+       VALUES (?, ?, ?)
+       ON CONFLICT(setting_key) DO UPDATE SET
+         value_json = excluded.value_json,
+         updated_at = excluded.updated_at`,
+      ['ai-config', JSON.stringify(config), now],
+    );
+    this.persist();
+  }
+
+  loadAIConfig(): AppSettingsPayload | null {
+    const db = this.requireDb();
+    const result = db.exec('SELECT value_json FROM app_settings WHERE setting_key = ?', ['ai-config']);
+    const row = result[0]?.values[0];
+    if (!row)
+      return null;
+    return JSON.parse(String(row[0])) as AppSettingsPayload;
+  }
+
   private migrate(): void {
     const db = this.requireDb();
     db.run(`
@@ -169,8 +286,31 @@ export class GameDatabase {
         FOREIGN KEY (run_id) REFERENCES game_runs(run_id) ON DELETE CASCADE
       );
     `);
+    db.run(`
+      CREATE TABLE IF NOT EXISTS app_settings (
+        setting_key TEXT PRIMARY KEY,
+        value_json TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+    `);
+    db.run(`
+      CREATE TABLE IF NOT EXISTS death_archives (
+        archive_id TEXT PRIMARY KEY,
+        run_id TEXT NOT NULL,
+        snapshot_json TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      );
+    `);
+    db.run(`
+      CREATE TABLE IF NOT EXISTS inventory_pins (
+        run_id TEXT PRIMARY KEY,
+        pinned_keys_json TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+    `);
     db.run('CREATE INDEX IF NOT EXISTS idx_game_turns_run ON game_turns(run_id, turn_index)');
     db.run('CREATE INDEX IF NOT EXISTS idx_game_events_run ON game_events(run_id, created_at)');
+    db.run('CREATE INDEX IF NOT EXISTS idx_death_archives_run ON death_archives(run_id, created_at)');
   }
 
   private appendTurn(runId: string, snapshot: SaveGamePayload, createdAt: string): void {

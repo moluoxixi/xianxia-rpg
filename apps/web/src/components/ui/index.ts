@@ -1,6 +1,7 @@
 export { Button, buttonVariants } from './button';
 export type { ButtonProps } from './button';
 export { Card } from './card';
-export { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './dialog';
+export { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from './context-menu';
+export { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from './dialog';
 export { Input } from './input';
 export { Textarea } from './textarea';

@@ -1,4 +1,4 @@
-import type { GameHostClient } from './packages/shared';
+import type { GameHostClient, HostInventoryPinsPayload } from './packages/shared/index';
 import { contextBridge, ipcRenderer } from 'electron';
 
 const gameAPI: GameHostClient = {
@@ -10,6 +10,18 @@ const gameAPI: GameHostClient = {
 
   loadGame: () =>
     ipcRenderer.invoke('load-game-data'),
+
+  loadGameByRunId: (runId: string) =>
+    ipcRenderer.invoke('load-game-data-by-run-id', runId),
+
+  listGameSaves: () =>
+    ipcRenderer.invoke('list-game-saves'),
+
+  loadInventoryPins: (runId: string) =>
+    ipcRenderer.invoke('load-inventory-pins', runId),
+
+  saveInventoryPins: (payload: HostInventoryPinsPayload) =>
+    ipcRenderer.invoke('save-inventory-pins', payload),
 
   updateAIConfig: (config: Record<string, unknown>) =>
     ipcRenderer.invoke('update-ai-config', config),

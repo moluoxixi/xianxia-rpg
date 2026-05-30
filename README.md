@@ -19,10 +19,11 @@ packages/
 
 ## 发布形态
 
-- 独立网页：只发布 `apps/web`，通过 `VITE_API_BASE_URL` 连接后端。
-- 前后端分离：`apps/web` 和未来的 `apps/api` 分别部署，Web 通过 HTTP client 访问 Nest。
+- 独立网页：只发布 `apps/web`，通过同源 API 或 `VITE_API_BASE_URL` 连接后端。
+- 前后端分离：`apps/web` 和未来的 `apps/api` 分别部署，Web 通过统一请求层访问 Nest HTTP API。
 - 桌面应用：Electron shell 在开发时通过 `BrowserWindow.loadURL('http://localhost:5173')` 加载前端；打包后通过 `BrowserWindow.loadFile('dist/web/index.html')` 加载前端产物。
-- 桌面 IPC：Electron preload 注入 `window.gameAPI` 后，Web 自动使用 IPC client；没有 IPC 且配置了 `VITE_API_BASE_URL` 时使用 HTTP client。
+- 统一请求：前端业务层始终请求同一组路径，如 `/game/save`、`/game/latest`、`/ai/config`。请求层检测到 Electron preload 注入的 `window.gameAPI` 时映射到 IPC；否则请求同名 HTTP API。`VITE_API_BASE_URL` 可指向独立 Nest 服务，未配置时使用同源相对路径。
+- 数据持久化：Electron 侧通过 SQLite 保存游戏存档、死亡归档、AI 配置以及按当前存档 `runId` 归属的背包置顶项；Web 侧由同名 HTTP API 负责持久化。
 
 ## 当前脚本
 
