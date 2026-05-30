@@ -10,7 +10,6 @@ export default antfu({
     'dist',
     'node_modules',
     'package-lock.json',
-    'renderer.ts',
   ],
 }, {
   rules: {

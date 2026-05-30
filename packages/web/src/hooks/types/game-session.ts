@@ -1,0 +1,44 @@
+import type { GameSaveSummary, NPC } from '@xianxia-rpg/core';
+import type { Dispatch, RefObject, SetStateAction } from 'react';
+import type { AIConfigForm, ChatMessage, Choice, Difficulty, GameState, InventoryItem } from '@/domain';
+
+export interface GameSessionController {
+  gameState: GameState;
+  messages: ChatMessage[];
+  input: string;
+  quickActions: string[];
+  choices: Choice[];
+  isSending: boolean;
+  isLoadingSaves: boolean;
+  saveListMessage: string;
+  settingsOpen: boolean;
+  inventoryOpen: boolean;
+  selectedInventoryKey: string | null;
+  pinnedInventoryKeys: string[];
+  breakthroughRealm: string;
+  config: AIConfigForm;
+  viewportRef: RefObject<HTMLDivElement | null>;
+  gameSaves: GameSaveSummary[];
+  sceneNpcs: NPC[];
+  hasReviveStone: boolean;
+  setInput: Dispatch<SetStateAction<string>>;
+  setSettingsOpen: Dispatch<SetStateAction<boolean>>;
+  setInventoryOpen: Dispatch<SetStateAction<boolean>>;
+  setConfig: Dispatch<SetStateAction<AIConfigForm>>;
+  openInventory: (item?: InventoryItem) => void;
+  selectInventoryItem: (item: InventoryItem) => void;
+  toggleInventoryPin: (item: InventoryItem) => void;
+  activateInventoryItem: (item: InventoryItem) => Promise<void>;
+  dropInventoryItem: (index: number) => void;
+  sendAction: (action?: string) => Promise<void>;
+  openSettings: () => Promise<void>;
+  saveSettings: () => Promise<void>;
+  refreshGameSaves: () => Promise<void>;
+  saveGame: () => Promise<void>;
+  loadGame: () => Promise<boolean>;
+  loadGameByRunId: (runId: string) => Promise<boolean>;
+  startNewGame: () => Promise<boolean>;
+  resetGame: () => void;
+  revivePlayer: () => void;
+  changeDifficulty: (difficulty: Difficulty) => void;
+}

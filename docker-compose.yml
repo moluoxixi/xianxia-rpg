@@ -1,0 +1,15 @@
+services:
+  xianxia-rpg:
+    build:
+      context: .
+    ports:
+      - '3000:3000'
+    environment:
+      PORT: '3000'
+      XIANXIA_DATA_DIR: /data
+    volumes:
+      - xianxia-data:/data
+    restart: unless-stopped
+
+volumes:
+  xianxia-data:

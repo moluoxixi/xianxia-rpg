@@ -3,23 +3,25 @@
   "version": "0.1.0",
   "description": "凡人修仙传 - AI文字对话角色扮演游戏",
   "workspaces": [
-    "apps/*",
     "packages/*"
   ],
   "main": "dist/main/main.js",
   "scripts": {
-    "dev": "concurrently -k \"npm run dev:web\" \"wait-on http://localhost:5173 && cross-env VITE_DEV_SERVER_URL=http://localhost:5173 electron .\"",
-    "dev:web": "vite --config apps/web/vite.config.ts",
+    "dev": "concurrently -k \"npm run dev:api\" \"cross-env VITE_API_BASE_URL=http://127.0.0.1:3000 npm run dev:web\" \"wait-on http://127.0.0.1:5173 http://127.0.0.1:3000/ai/config && cross-env VITE_DEV_SERVER_URL=http://127.0.0.1:5173 electron .\"",
+    "dev:api": "npm --workspace @xianxia-rpg/api run dev",
+    "dev:web": "npm --workspace @xianxia-rpg/web run dev",
     "dev:renderer": "npm run dev:web",
     "dev:vite": "npm run dev:web",
-    "dev:electron": "wait-on http://localhost:5173 && cross-env VITE_DEV_SERVER_URL=http://localhost:5173 electron .",
-    "build:shared": "npm --workspace @xianxia-rpg/shared run build",
+    "dev:electron": "wait-on http://127.0.0.1:5173 && cross-env VITE_DEV_SERVER_URL=http://127.0.0.1:5173 electron .",
+    "build:core": "npm --workspace @xianxia-rpg/core run build",
+    "build:api": "npm --workspace @xianxia-rpg/api run build",
     "build:main": "tsc -p tsconfig.main.json",
-    "build:web": "vite build --config apps/web/vite.config.ts",
+    "build:web": "npm --workspace @xianxia-rpg/web run build",
     "build:renderer": "npm run build:web",
-    "build": "npm run build:shared && npm run build:main && npm run build:web",
+    "build": "npm run build:core && npm run build:main && npm run build:web && npm run build:api",
+    "start:api": "npm --workspace @xianxia-rpg/api run start",
     "start": "npm run build && electron .",
-    "typecheck": "npm --workspace @xianxia-rpg/shared run typecheck && npm --workspace @xianxia-rpg/web run typecheck && tsc --noEmit -p tsconfig.main.json",
+    "typecheck": "npm run build:core && npm --workspace @xianxia-rpg/core run typecheck && npm --workspace @xianxia-rpg/web run typecheck && npm --workspace @xianxia-rpg/api run typecheck && tsc --noEmit -p tsconfig.main.json",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "commitlint": "commitlint --edit",
@@ -58,17 +60,7 @@
     "wait-on": "^9.0.10"
   },
   "dependencies": {
-    "@radix-ui/react-context-menu": "^2.2.16",
-    "@radix-ui/react-dialog": "^1.1.15",
-    "@radix-ui/react-dropdown-menu": "^2.1.16",
-    "@radix-ui/react-slot": "^1.2.4",
-    "class-variance-authority": "^0.7.1",
-    "clsx": "^2.1.1",
-    "lucide-react": "^1.17.0",
-    "react": "^19.2.6",
-    "react-dom": "^19.2.6",
-    "sql.js": "^1.14.1",
-    "tailwind-merge": "^3.6.0"
+    "@xianxia-rpg/core": "file:packages/core"
   },
   "lint-staged": {
     "*.{js,cjs,mjs,ts,tsx}": "eslint --fix"

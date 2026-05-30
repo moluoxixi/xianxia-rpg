@@ -1,24 +1,25 @@
 {
   "compilerOptions": {
-    "jsx": "react",
     "target": "ESNext",
     "module": "commonjs",
+    "moduleResolution": "node",
     "lib": ["ESNext"],
-    "outDir": "dist",
+    "outDir": "../../dist/api",
     "rootDir": ".",
     "strict": true,
     "esModuleInterop": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "declaration": true,
-    "declarationMap": true,
     "sourceMap": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
+    "declaration": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["main.ts", "packages/**/*"],
-  "exclude": ["node_modules", "dist", "packages/*/dist"]
+  "include": ["src/**/*"],
+  "exclude": ["../../node_modules", "../../dist"]
 }
