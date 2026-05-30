@@ -1,20 +1,23 @@
 import type { GameHostClient, GameSaveSummary, NPC } from '@xianxia-rpg/core';
 import type { GameSessionController } from './types';
-import type { AIConfigForm, AppliedEvent, ChatMessage, Choice, Difficulty, GameState, InventoryItem, Role } from '@/domain';
+import type { AIConfigForm, AppliedEvent, ApplyResourceResult, ChatMessage, Choice, Difficulty, GameState, InventoryItem, Role } from '@/domain';
 import { INITIAL_SCENE } from '@xianxia-rpg/core';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   applyResourceChanges,
   buildPlayerStatus,
   cloneInitialState,
+  createLocalActionChanges,
   createMessage,
   getDefaultQuickActions,
   getInventoryItemKey,
+  mergeQuickActions,
   normalizeLoadedGameState,
   pinnedItems,
   parseChoices,
   parseQuickActions,
   parseResourceChanges,
+  removeRemoteChangesCoveredByLocal,
   stripChoices,
 } from '@/domain';
 import { getGameHostClient } from '@/host';
@@ -76,7 +79,7 @@ export function useGameSession(client?: GameHostClient): GameSessionController {
 
     return parseQuickActions(lastAssistantMessage.content).actions;
   }, [messages]);
-  const displayedQuickActions = recoveredQuickActions.length > 0 ? recoveredQuickActions : quickActions;
+  const displayedQuickActions = recoveredQuickActions.length > 0 ? mergeQuickActions(gameState, recoveredQuickActions) : quickActions;
 
   const refreshGameSaves = useCallback(async (): Promise<void> => {
     setIsLoadingSaves(true);
@@ -164,11 +167,23 @@ export function useGameSession(client?: GameHostClient): GameSessionController {
     setIsSending(true);
     pushMessage('user', text);
 
-    const history = [...gameState.chatHistory, { role: 'user', content: text }, { role: 'system', content: buildPlayerStatus(gameState) }];
+    const localChanges = createLocalActionChanges(gameState, text);
+    const localBaseState = structuredClone(gameState);
+    localBaseState.chatHistory = [...gameState.chatHistory, { role: 'user', content: text }];
+    const localApplied: ApplyResourceResult = localChanges.length > 0 ? applyResourceChanges(localBaseState, localChanges) : { nextState: localBaseState, summary: '', events: [] };
+    const stateForAI = localApplied.nextState;
+    const history = [...gameState.chatHistory, { role: 'system', content: buildPlayerStatus(stateForAI) }];
 
     try {
       const result = await hostClient.sendMessage({ message: text, history });
       if (!result.success) {
+        if (localChanges.length > 0) {
+          setGameState(stateForAI);
+          setQuickActions(getDefaultQuickActions(stateForAI));
+          if (localApplied.summary)
+            pushMessage('system', localApplied.summary);
+          await persistGame(stateForAI, localApplied.events);
+        }
         pushMessage('system', `AI 错误：${result.error ?? '未知错误'}`);
         return;
       }
@@ -182,17 +197,20 @@ export function useGameSession(client?: GameHostClient): GameSessionController {
       pushMessage('assistant', displayText);
       setChoices(nextChoices);
 
-      const baseState = structuredClone(gameState);
-      baseState.chatHistory = [...gameState.chatHistory, { role: 'user', content: text }, { role: 'assistant', content: displayText }];
-      const applied = changes.length > 0 ? applyResourceChanges(baseState, changes) : { nextState: baseState, summary: '', events: [] };
+      const baseState = structuredClone(stateForAI);
+      baseState.chatHistory = [...stateForAI.chatHistory, { role: 'assistant', content: displayText }];
+      const remoteChanges = removeRemoteChangesCoveredByLocal(changes, localChanges);
+      const applied: ApplyResourceResult = remoteChanges.length > 0 ? applyResourceChanges(baseState, remoteChanges) : { nextState: baseState, summary: '', events: [] };
       const nextState = applied.nextState;
+      const events = [...localApplied.events, ...applied.events];
+      const summary = [localApplied.summary, applied.summary].filter(Boolean).join('\n');
 
-      setQuickActions(quick.actions.length > 0 ? quick.actions : getDefaultQuickActions(nextState));
+      setQuickActions(mergeQuickActions(nextState, quick.actions));
 
-      if (applied.summary)
-        pushMessage('system', applied.summary);
-      if (applied.breakthroughRealm) {
-        setBreakthroughRealm(applied.breakthroughRealm);
+      if (summary)
+        pushMessage('system', summary);
+      if (applied.breakthroughRealm || localApplied.breakthroughRealm) {
+        setBreakthroughRealm(applied.breakthroughRealm ?? localApplied.breakthroughRealm ?? '');
         setTimeout(setBreakthroughRealm, 2600, '');
       }
       if (nextState.stats.hp <= 0) {
@@ -201,7 +219,7 @@ export function useGameSession(client?: GameHostClient): GameSessionController {
       }
 
       setGameState(nextState);
-      await persistGame(nextState, applied.events);
+      await persistGame(nextState, events);
     }
     catch (error) {
       pushMessage('system', `通信错误：${error instanceof Error ? error.message : String(error)}`);

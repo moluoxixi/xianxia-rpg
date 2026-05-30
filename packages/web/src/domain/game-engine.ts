@@ -1,6 +1,6 @@
 import type { NPC, Scene } from '@xianxia-rpg/core';
 import type { AppliedEvent, ApplyResourceResult, GameState, ResourceChange } from './game-state';
-import { resolveCombat } from '@xianxia-rpg/core';
+import { resolveCombat, STARTER_SCENES } from '@xianxia-rpg/core';
 import { realmLevels, resourceRealmReq, skillRealmReq } from './game-data';
 
 interface AdjudicationResult {
@@ -10,12 +10,48 @@ interface AdjudicationResult {
 }
 
 export function buildPlayerStatus(gameState: GameState): string {
-  const currentSceneData = gameState.scenes[gameState.currentScene];
+  const currentSceneData = resolveCurrentSceneData(gameState);
   const sceneNpcs = Object.values(gameState.npcs)
     .filter(npc => npc.location === gameState.currentScene && !gameState.defeatedNpcs.includes(npc.id))
     .map(npc => `${npc.name}（${npc.realm},${npc.role === 'enemy' ? '敌人' : npc.role === 'merchant' ? '商人' : '剧情NPC'},好感:${npc.favorability}${npc.attackable ? ',可攻击' : ''}）`);
 
-  return `【玩家状态】\n境界:${gameState.character.realm} 气血:${gameState.stats.hp}/${gameState.stats.maxHp} 灵力:${gameState.stats.mp}/${gameState.stats.maxMp} 修为:${gameState.stats.exp}/${gameState.stats.maxExp}\n位置:${gameState.character.location}\n背包:${gameState.inventory.map(i => `${i.name}×${i.count}`).join(', ') || '空'}\n功法:${gameState.skills.map(s => `${s.name}(${s.level})`).join(', ') || '无'}\n\n【当前场景】${gameState.currentScene}\n类型:${currentSceneData?.type ?? '未知'}\n关联场景:${currentSceneData?.connectedScenes.join(', ') || '无'}\n危险:${currentSceneData?.isDangerous ? '是' : '否'}\n场景NPC:${sceneNpcs.join(', ') || '无'}\n\n【已解锁场景】${Object.keys(gameState.scenes).join(', ')}`;
+  return `【玩家状态】\n境界:${gameState.character.realm} 气血:${gameState.stats.hp}/${gameState.stats.maxHp} 灵力:${gameState.stats.mp}/${gameState.stats.maxMp} 修为:${gameState.stats.exp}/${gameState.stats.maxExp}\n位置:${gameState.character.location}\n背包:${gameState.inventory.map(i => `${i.name}×${i.count}`).join(', ') || '空'}\n功法:${gameState.skills.map(s => `${s.name}(${s.level})`).join(', ') || '无'}\n\n【当前场景】${gameState.currentScene}\n类型:${currentSceneData?.type ?? '未知'}\n描述:${currentSceneData?.description || '未记录'}\n关联场景:${currentSceneData?.connectedScenes.join(', ') || '无'}\n可获取:${currentSceneData?.availableResources.join(', ') || '无'}\n危险:${currentSceneData?.isDangerous ? '是' : '否'}\n场景NPC:${sceneNpcs.join(', ') || '无'}\n\n【已解锁场景】${Object.keys(gameState.scenes).join(', ')}`;
+}
+
+export function createLocalActionChanges(state: GameState, actionText: string): ResourceChange[] {
+  const changes: ResourceChange[] = [];
+  if (isCultivationAction(actionText)) {
+    changes.push({
+      type: 'exp',
+      value: Math.min(state.stats.maxExp, state.stats.exp + getCultivationGain(state)),
+    });
+  }
+
+  if (isHuanglongDanAction(actionText)) {
+    const hasHuanglongDan = state.inventory.some(item => item.name === '黄龙丹' && item.count > 0);
+    changes.push({ type: 'item_remove', name: '黄龙丹', count: 1 });
+    if (hasHuanglongDan) {
+      changes.push({
+        type: 'hp',
+        value: Math.min(state.stats.maxHp, state.stats.hp + 50),
+      });
+    }
+  }
+
+  return changes;
+}
+
+export function removeRemoteChangesCoveredByLocal(remoteChanges: ResourceChange[], localChanges: ResourceChange[]): ResourceChange[] {
+  const localTypes = new Set(localChanges.map(change => change.type));
+  return remoteChanges.filter((change) => {
+    if (change.type === 'exp' && localTypes.has('exp'))
+      return false;
+    if (change.type === 'hp' && localTypes.has('hp'))
+      return false;
+    if (change.type === 'item_remove' && change.name === '黄龙丹' && localChanges.some(localChange => localChange.type === 'item_remove' && localChange.name === '黄龙丹'))
+      return false;
+    return true;
+  });
 }
 
 export function applyResourceChanges(state: GameState, changes: ResourceChange[]): ApplyResourceResult {
@@ -45,7 +81,7 @@ export function applyResourceChanges(state: GameState, changes: ResourceChange[]
     const summary = applyOneChange(next, change);
     if (!summary)
       continue;
-    const eventSummary = adjudication.reason ? `${summary}（${adjudication.reason}）` : summary;
+    const eventSummary = summary;
     if (change.type === 'realm' && typeof change.value === 'string')
       breakthroughRealm = change.value;
     events.push({
@@ -365,7 +401,7 @@ function updateLocation(next: GameState, change: ResourceChange): string {
   next.character.location = newLoc;
   next.currentScene = newLoc;
   if (!next.scenes[newLoc]) {
-    next.scenes[newLoc] = {
+    next.scenes[newLoc] = structuredClone(STARTER_SCENES[newLoc] ?? {
       name: newLoc,
       type: 'wild',
       region: next.character.sect,
@@ -374,10 +410,40 @@ function updateLocation(next: GameState, change: ResourceChange): string {
       npcs: [],
       availableResources: [],
       isDangerous: false,
-    };
+    });
   }
   linkScenes(next, from, newLoc);
-  return `位置 -> ${newLoc}`;
+  return `你来到${newLoc}`;
+}
+
+function resolveCurrentSceneData(gameState: GameState): Scene | undefined {
+  const scene = gameState.scenes[gameState.currentScene];
+  const starterScene = STARTER_SCENES[gameState.currentScene];
+  if (scene && starterScene) {
+    return {
+      ...starterScene,
+      ...scene,
+      description: scene.description || starterScene.description,
+      connectedScenes: mergeUnique([...starterScene.connectedScenes, ...scene.connectedScenes]),
+      availableResources: scene.availableResources.length ? scene.availableResources : starterScene.availableResources,
+      npcs: mergeUnique([...starterScene.npcs, ...scene.npcs]),
+    };
+  }
+  return scene ?? starterScene;
+}
+
+function isCultivationAction(actionText: string): boolean {
+  return actionText.includes('修炼') || actionText.includes('练功') || actionText.includes('打坐') || actionText.includes('长春功');
+}
+
+function isHuanglongDanAction(actionText: string): boolean {
+  return actionText.includes('黄龙丹') && (actionText.includes('服用') || actionText.includes('使用'));
+}
+
+function getCultivationGain(state: GameState): number {
+  if (state.currentScene === '练功房')
+    return 16;
+  return 8;
 }
 
 function addSkill(next: GameState, change: ResourceChange): string {

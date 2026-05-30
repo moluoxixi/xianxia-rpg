@@ -92,3 +92,48 @@ export const INITIAL_SCENE: Scene = {
   availableResources: [],
   isDangerous: false,
 };
+
+/** 七玄门开局区域，作为半开放玩法的基础场景记录。 */
+export const STARTER_SCENES: Record<string, Scene> = {
+  [INITIAL_SCENE.name]: INITIAL_SCENE,
+  练功房: {
+    name: '练功房',
+    type: 'sect',
+    region: '七玄门',
+    description: '外门弟子打坐练气的石室，聚气阵缓慢牵引灵气，适合修炼基础功法与演练剑术。',
+    connectedScenes: [INITIAL_SCENE.name, '后山', '丹药房', '藏经阁'],
+    npcs: [],
+    availableResources: ['修为', '功法熟练度'],
+    isDangerous: false,
+  },
+  后山: {
+    name: '后山',
+    type: 'wild',
+    region: '七玄门',
+    description: '七玄门后方的山林，草木深密，偶有野兽与低阶灵草，是外门弟子历练采药之处。',
+    connectedScenes: [INITIAL_SCENE.name, '练功房'],
+    npcs: [],
+    availableResources: ['灵草', '铁精', '野兽材料'],
+    isDangerous: true,
+  },
+  丹药房: {
+    name: '丹药房',
+    type: 'shop',
+    region: '七玄门',
+    description: '门内发放与兑换基础丹药的地方，空气里浮着淡淡药香。',
+    connectedScenes: [INITIAL_SCENE.name, '练功房', '藏经阁'],
+    npcs: [],
+    availableResources: ['黄龙丹', '回灵丹'],
+    isDangerous: false,
+  },
+  藏经阁: {
+    name: '藏经阁',
+    type: 'sect',
+    region: '七玄门',
+    description: '收藏外门基础功法与游记札录的阁楼，适合查阅世界线索和功法常识。',
+    connectedScenes: [INITIAL_SCENE.name, '练功房', '丹药房'],
+    npcs: [],
+    availableResources: ['基础功法', '宗门情报'],
+    isDangerous: false,
+  },
+};

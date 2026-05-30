@@ -1,6 +1,7 @@
+import type { Scene } from '@xianxia-rpg/core';
 import type { GameState } from './game-state';
 import type { ChatMessage, InventoryItem, InventoryViewItem, Role } from './types';
-import { INITIAL_SCENE } from '@xianxia-rpg/core';
+import { INITIAL_SCENE, STARTER_SCENES } from '@xianxia-rpg/core';
 
 export const pinnedItems = ['下品灵石', '黄龙丹', '长剑'];
 
@@ -122,7 +123,7 @@ export function createInitialGameState(): GameState {
     difficulty: 'normal',
     isDead: false,
     currentScene: INITIAL_SCENE.name,
-    scenes: { [INITIAL_SCENE.name]: INITIAL_SCENE },
+    scenes: createStarterScenes(),
     npcs: {},
     defeatedNpcs: [],
   };
@@ -133,11 +134,11 @@ export function cloneInitialState(): GameState {
 }
 
 export function getDefaultQuickActions(gameState: GameState): string[] {
-  const scene = gameState.scenes[gameState.currentScene];
-  const actions = ['观察四周', '修炼功法', '整理背包'];
+  const scene = getEffectiveScene(gameState.currentScene, gameState.scenes[gameState.currentScene]);
+  const actions = getSceneSpecificActions(gameState.currentScene);
 
   if (scene?.connectedScenes.length) {
-    actions.push(...scene.connectedScenes.slice(0, 3).map(name => `前往${name}`));
+    actions.push(...scene.connectedScenes.slice(0, 4).map(name => `前往${name}`));
   }
 
   if (scene?.isDangerous) {
@@ -148,6 +149,37 @@ export function getDefaultQuickActions(gameState: GameState): string[] {
   }
 
   return Array.from(new Set(actions)).slice(0, 8);
+}
+
+export function mergeQuickActions(gameState: GameState, aiActions: string[]): string[] {
+  return Array.from(new Set([...aiActions, ...getDefaultQuickActions(gameState)])).slice(0, 8);
+}
+
+function createStarterScenes(): Record<string, Scene> {
+  const scenes: Record<string, Scene> = {};
+  for (const [name, scene] of Object.entries(STARTER_SCENES)) {
+    scenes[name] = structuredClone(scene);
+  }
+  return scenes;
+}
+
+function getEffectiveScene(sceneName: string, scene: Scene | undefined): Scene | undefined {
+  const starterScene = STARTER_SCENES[sceneName];
+  if (starterScene && scene)
+    return mergeScene(starterScene, scene);
+  return scene ?? starterScene;
+}
+
+function getSceneSpecificActions(sceneName: string): string[] {
+  if (sceneName === '练功房')
+    return ['修炼长春功', '演练基础剑术', '调息恢复', '查看状态'];
+  if (sceneName === '后山')
+    return ['采集灵草', '探查山林', '寻找妖兽踪迹', '返回居所'];
+  if (sceneName === '丹药房')
+    return ['兑换丹药', '询问药价', '服用黄龙丹', '返回居所'];
+  if (sceneName === '藏经阁')
+    return ['查阅功法', '寻找游记', '研究地图', '返回居所'];
+  return ['观察四周', '整理背包', '查看状态', '外出历练'];
 }
 
 export function normalizeLoadedGameState(data: unknown): GameState | null {
@@ -164,10 +196,37 @@ export function normalizeLoadedGameState(data: unknown): GameState | null {
     inventory: Array.isArray(loaded.inventory) ? loaded.inventory : fallback.inventory,
     skills: Array.isArray(loaded.skills) ? loaded.skills : fallback.skills,
     chatHistory: Array.isArray(loaded.chatHistory) ? loaded.chatHistory : fallback.chatHistory,
-    scenes: loaded.scenes ?? fallback.scenes,
+    scenes: mergeLoadedScenes(fallback.scenes, loaded.scenes),
     npcs: loaded.npcs ?? fallback.npcs,
     defeatedNpcs: Array.isArray(loaded.defeatedNpcs) ? loaded.defeatedNpcs : fallback.defeatedNpcs,
   };
+}
+
+function mergeLoadedScenes(fallbackScenes: Record<string, Scene>, loadedScenes: unknown): Record<string, Scene> {
+  if (!loadedScenes || typeof loadedScenes !== 'object')
+    return fallbackScenes;
+
+  const scenes = structuredClone(fallbackScenes);
+  for (const [name, loadedScene] of Object.entries(loadedScenes as Record<string, Partial<Scene>>)) {
+    const fallbackScene = fallbackScenes[name];
+    scenes[name] = fallbackScene ? mergeScene(fallbackScene, loadedScene) : loadedScene as Scene;
+  }
+  return scenes;
+}
+
+function mergeScene(fallbackScene: Scene, loadedScene: Partial<Scene>): Scene {
+  return {
+    ...fallbackScene,
+    ...loadedScene,
+    description: loadedScene.description || fallbackScene.description,
+    connectedScenes: mergeTextItems(fallbackScene.connectedScenes, loadedScene.connectedScenes ?? []),
+    availableResources: loadedScene.availableResources?.length ? loadedScene.availableResources : fallbackScene.availableResources,
+    npcs: mergeTextItems(fallbackScene.npcs, loadedScene.npcs ?? []),
+  };
+}
+
+function mergeTextItems(primary: string[], secondary: string[]): string[] {
+  return Array.from(new Set([...primary, ...secondary]));
 }
 
 export function statPercent(value: number, max: number): string {

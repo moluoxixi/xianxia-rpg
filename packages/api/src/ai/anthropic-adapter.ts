@@ -18,13 +18,16 @@ export class AnthropicAdapter implements AIAdapter {
     const baseURL = config.baseURL ?? 'https://api.anthropic.com/v1';
     const url = new URL(`${baseURL}/messages`);
 
-    // Anthropic 格式：system 是顶层参数，不在 messages 中
-    const systemPrompt = config.systemPrompt ?? '';
+    // Anthropic 格式：system 是顶层参数，动态人物/场景状态需要合并到这里。
+    const systemPrompt = [
+      config.systemPrompt ?? '',
+      ...request.messages.filter(msg => msg.role === 'system').map(msg => msg.content),
+    ].filter(Boolean).join('\n\n');
 
     // 构建消息列表（Anthropic 不支持 system role 在 messages 中）
     const messages: Array<{ role: 'user' | 'assistant'; content: string }> = [];
 
-    // 添加历史消息（跳过 system）
+    // 添加历史消息（system 已合并到顶层 system 字段）
     for (const msg of request.messages) {
       if (msg.role === 'system')
         continue;

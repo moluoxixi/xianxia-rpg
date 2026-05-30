@@ -46,6 +46,7 @@ export type {
 } from './src/host';
 export {
   INITIAL_SCENE,
+  STARTER_SCENES,
 } from './src/scene';
 export type {
   NPC,
