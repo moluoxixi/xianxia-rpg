@@ -27,7 +27,7 @@ export type { AppliedEvent, ApplyResourceResult, GameState, ResourceChange } fro
 export { createDefaultNovelApiSettings, defaultNovelApiBaseURL, defaultNovelApiBuildRequestCode, defaultNovelApiKey, defaultNovelApiMapResponseCode, defaultNovelApiProvider, normalizeNovelApiProvider } from './novel-api-config';
 export type { NovelApiProvider } from './novel-api-config';
 export type { LocalActionResolution } from './game-engine';
-export { availableNovelScenarios, createDefaultScenarioPack, createScenarioFromNovelTitle, normalizeScenarioPack } from './scenario';
+export { availableNovelScenarios, createDefaultScenarioPack, createRecommendedNovelSummaries, createScenarioFromNovelTitle, mergeNovelSummaries, normalizeScenarioPack } from './scenario';
 export type { NovelScenarioOption, ScenarioPack } from './scenario';
 export { DEFAULT_THEME_ID, gameThemePresets, getGameThemePreset, inferThemeIdFromNovel, inferThemeIdFromSave, normalizeThemeId, normalizeThemeSource, themeIds } from './theme';
 export type { GameThemeId, GameThemePreset, GameThemeSource, ThemeSaveSummary } from './theme';

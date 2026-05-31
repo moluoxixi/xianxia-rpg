@@ -35,6 +35,7 @@ export interface DeathOverlayProps {
 
 export interface InventoryDialogProps {
   open: boolean;
+  themeId: GameThemeId;
   items: InventoryItem[];
   selectedInventoryKey: string | null;
   pinnedInventoryKeys: string[];
@@ -52,6 +53,7 @@ export interface MessageBubbleProps {
 
 export interface SettingsDialogProps {
   open: boolean;
+  themeId: GameThemeId;
   config: AIConfigForm;
   onOpenChange: (open: boolean) => void;
   onConfigChange: (config: AIConfigForm) => void;

@@ -12,6 +12,7 @@ import {
   cloneScenarioInitialState,
   cloneInitialState,
   createMessage,
+  createRecommendedNovelSummaries,
   createScenarioFromNovelTitle,
   defaultNovelApiBaseURL,
   defaultNovelApiBuildRequestCode,
@@ -21,6 +22,7 @@ import {
   getDefaultQuickActions,
   getInventoryItemKey,
   inferThemeIdFromNovel,
+  mergeNovelSummaries,
   mergeQuickActions,
   normalizeNovelApiProvider,
   normalizeLoadedGameState,
@@ -131,7 +133,7 @@ export function useGameSession(client?: GameHostClient): GameSessionController {
     try {
       const result = await hostClient.searchNovels(keyword);
       if (result.success) {
-        setNovels(result.data);
+        setNovels(mergeNovelSummaries(createRecommendedNovelSummaries(), result.data));
         setNovelSearchMessage(result.message ?? '');
         return;
       }

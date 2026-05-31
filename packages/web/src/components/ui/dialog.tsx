@@ -28,9 +28,9 @@ export function DialogContent({ className, children, ...props }: DialogPrimitive
 }
 
 export function DialogHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn('border-b border-border px-5 py-4', className)} {...props} />;
+  return <div className={cn('theme-dialog-header border-b border-border px-5 py-4', className)} {...props} />;
 }
 
 export function DialogTitle({ className, ...props }: DialogPrimitive.DialogTitleProps) {
-  return <DialogPrimitive.Title className={cn('text-base font-semibold text-primary', className)} {...props} />;
+  return <DialogPrimitive.Title className={cn('theme-dialog-title text-base font-semibold text-primary', className)} {...props} />;
 }

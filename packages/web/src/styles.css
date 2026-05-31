@@ -159,6 +159,87 @@
   color: var(--theme-title);
 }
 
+.theme-dialog {
+  --theme-bg: #fff5fb;
+  --theme-panel: rgba(255, 255, 255, 0.82);
+  --theme-panel-border: rgba(236, 155, 194, 0.42);
+  --theme-title: #5f4560;
+  --theme-text: #7d647d;
+  --theme-muted: #9f849c;
+  --theme-accent: #f4a8c8;
+  --theme-accent-text: #48293a;
+  --theme-secondary: rgba(255, 235, 244, 0.86);
+  --theme-shadow: 0 28px 80px rgba(214, 133, 176, 0.28);
+  --theme-radius: 28px;
+  --theme-pattern: linear-gradient(rgba(255, 255, 255, 0.55) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.55) 1px, transparent 1px);
+  border-color: var(--theme-panel-border);
+  border-radius: min(var(--theme-radius), 24px);
+  background: var(--theme-panel);
+  color: var(--theme-text);
+  box-shadow: var(--theme-shadow);
+  backdrop-filter: blur(18px);
+}
+
+.theme-dialog::before {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  content: '';
+  background-image: var(--theme-pattern);
+  background-size: 28px 28px;
+  opacity: 0.18;
+}
+
+.theme-dialog > * {
+  position: relative;
+  z-index: 1;
+}
+
+.theme-dialog-header {
+  border-color: var(--theme-panel-border);
+  background: var(--theme-secondary);
+}
+
+.theme-dialog-title,
+.theme-dialog .text-primary {
+  color: var(--theme-title);
+}
+
+.theme-dialog .text-muted-foreground {
+  color: var(--theme-muted);
+}
+
+.theme-dialog .text-foreground,
+.theme-dialog .text-card-foreground {
+  color: var(--theme-text);
+}
+
+.theme-dialog .border-border,
+.theme-dialog .border-input {
+  border-color: var(--theme-panel-border);
+}
+
+.theme-dialog .bg-card,
+.theme-dialog .bg-muted,
+.theme-dialog .bg-popover,
+.theme-dialog .bg-secondary {
+  background: var(--theme-secondary);
+}
+
+.theme-dialog .bg-primary {
+  background: var(--theme-accent);
+  color: var(--theme-accent-text);
+}
+
+.theme-dialog input,
+.theme-dialog select,
+.theme-dialog textarea {
+  border-color: var(--theme-panel-border);
+  background: var(--theme-secondary);
+  color: var(--theme-title);
+}
+
 .theme-shell-otome {
   --theme-bg: #fff4fb;
   --theme-panel: rgba(255, 255, 255, 0.78);

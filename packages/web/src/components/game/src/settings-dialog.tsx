@@ -2,17 +2,20 @@ import type { ReactNode } from 'react';
 import type { SettingsDialogProps } from './types';
 import { useState } from 'react';
 import { Button, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui';
+import { getGameThemePreset } from '@/domain';
+import { cn } from '@/lib/utils';
 import { SettingsModelTab } from './settings-model-tab';
 import { SettingsNovelApiTab } from './settings-novel-api-tab';
 
 type SettingsTab = 'model' | 'novel-api';
 
-export function SettingsDialog({ open, config, onOpenChange, onConfigChange, onSave }: SettingsDialogProps) {
+export function SettingsDialog({ open, themeId, config, onOpenChange, onConfigChange, onSave }: SettingsDialogProps) {
   const [activeTab, setActiveTab] = useState<SettingsTab>('model');
+  const theme = getGameThemePreset(themeId);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className={cn('theme-dialog', theme.shellClassName)}>
         <DialogHeader>
           <DialogTitle>设置</DialogTitle>
           <DialogDescription className="sr-only">配置 AI 模型和小说接口。</DialogDescription>

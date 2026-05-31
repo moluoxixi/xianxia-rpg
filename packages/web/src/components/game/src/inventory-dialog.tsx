@@ -2,7 +2,8 @@ import type { InventoryDialogProps } from './types';
 import { Pin, Trash2, Wand2 } from 'lucide-react';
 import { InventoryItemEntry } from './inventory-item-entry';
 import { Button, Card, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui';
-import { createInventoryViewItems, getItemIcon, itemDescriptions } from '@/domain';
+import { createInventoryViewItems, getGameThemePreset, getItemIcon, itemDescriptions } from '@/domain';
+import { cn } from '@/lib/utils';
 
 export function InventoryDialog({
   items,
@@ -14,14 +15,16 @@ export function InventoryDialog({
   open,
   pinnedInventoryKeys,
   selectedInventoryKey,
+  themeId,
 }: InventoryDialogProps) {
   const viewItems = createInventoryViewItems(items, pinnedInventoryKeys);
   const selectedEntry = viewItems.find(entry => entry.key === selectedInventoryKey) ?? viewItems[0];
   const selectedItem = selectedEntry?.item;
+  const theme = getGameThemePreset(themeId);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[min(94vw,860px)]">
+      <DialogContent className={cn('theme-dialog w-[min(94vw,860px)]', theme.shellClassName)}>
         <DialogHeader>
           <DialogTitle>背包</DialogTitle>
           <DialogDescription className="sr-only">查看全部物品、详情和背包操作。</DialogDescription>

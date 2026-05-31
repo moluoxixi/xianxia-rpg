@@ -1,4 +1,4 @@
-import type { Scene } from '@xianxia-rpg/core';
+import type { NovelSummary, Scene } from '@xianxia-rpg/core';
 import type { CharacterInfo } from './types';
 import { INITIAL_SCENE, STARTER_SCENES } from '@xianxia-rpg/core';
 import { inferThemeIdFromNovel, normalizeThemeId, normalizeThemeSource } from './theme';
@@ -22,6 +22,7 @@ export interface NovelScenarioOption {
   id: string;
   title: string;
   referenceNovel: string;
+  author: string;
   description: string;
 }
 
@@ -31,39 +32,67 @@ export const availableNovelScenarios: NovelScenarioOption[] = [
     id: 'fanren-xiuxian',
     title: '凡人修仙传',
     referenceNovel: '凡人修仙传',
+    author: '忘语',
     description: '凡人流修仙，资源稀缺、谨慎成长、机缘与风险并存。',
   },
   {
     id: 'lord-of-mysteries',
     title: '诡秘之主',
     referenceNovel: '诡秘之主',
+    author: '爱潜水的乌贼',
     description: '维多利亚神秘学、序列晋升、隐秘组织与不可名状风险。',
   },
   {
     id: 'shrouding-the-heavens',
     title: '遮天',
     referenceNovel: '遮天',
+    author: '辰东',
     description: '宏大古史、圣地世家、体质秘境和星空远行。',
   },
   {
     id: 'snow-sword-stride',
     title: '雪中悍刀行',
     referenceNovel: '雪中悍刀行',
+    author: '烽火戏诸侯',
     description: '庙堂江湖、门阀边关、武道气运与人情抉择。',
   },
   {
     id: 'battle-through-the-heavens',
     title: '斗破苍穹',
     referenceNovel: '斗破苍穹',
+    author: '天蚕土豆',
     description: '斗气大陆、炼药成长、宗门家族与异火机缘。',
   },
   {
     id: 'swallowed-star',
     title: '吞噬星空',
     referenceNovel: '吞噬星空',
+    author: '我吃西红柿',
     description: '高武科幻、怪兽荒野、行星级成长和宇宙冒险。',
   },
 ];
+
+export function createRecommendedNovelSummaries(): NovelSummary[] {
+  return availableNovelScenarios.map(novel => ({
+    id: `recommended-${novel.id}`,
+    title: novel.referenceNovel,
+    author: novel.author,
+    description: novel.description,
+    source: '推荐小说',
+  }));
+}
+
+export function mergeNovelSummaries(...groups: NovelSummary[][]): NovelSummary[] {
+  const merged = new Map<string, NovelSummary>();
+  for (const group of groups) {
+    for (const novel of group) {
+      const key = novel.title.toLocaleLowerCase('zh-CN');
+      if (!merged.has(key))
+        merged.set(key, novel);
+    }
+  }
+  return [...merged.values()];
+}
 
 export function createDefaultScenarioPack(): ScenarioPack {
   return {
@@ -122,9 +151,10 @@ export function normalizeScenarioPack(value: unknown): ScenarioPack | null {
   if (!value || typeof value !== 'object')
     return null;
   const scenario = value as ScenarioPack;
+  const inferredThemeId = inferThemeIdFromNovel(scenario.referenceNovel ?? scenario.title, scenario.description);
   return {
     ...scenario,
-    themeId: normalizeThemeId(scenario.themeId),
+    themeId: normalizeThemeId(scenario.themeId ?? inferredThemeId),
     themeSource: normalizeThemeSource(scenario.themeSource ?? 'novel-auto'),
   };
 }

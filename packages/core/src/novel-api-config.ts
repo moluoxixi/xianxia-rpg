@@ -13,11 +13,17 @@ export const defaultNovelApiBaseURL = 'https://openlibrary.org';
 export const defaultNovelApiKey = '';
 
 // Open Library 搜索接口作为默认野外小说来源，保持无 API Key 的试玩闭环。
-export const defaultNovelApiBuildRequestCode = `({ baseURL, keyword }) => ({
-  url: baseURL + '/search.json?q=' + encodeURIComponent(keyword || '凡人修仙传') + '&limit=12&fields=key,title,author_name,first_publish_year,subject',
-  method: 'GET',
-  headers: {},
-})`;
+export const defaultNovelApiBuildRequestCode = `({ baseURL, keyword }) => {
+  const openLibraryKeyword = keyword && !keyword.includes('?') && [...keyword].every(character => character.charCodeAt(0) < 128)
+    ? keyword
+    : 'fiction fantasy adventure';
+
+  return {
+    url: baseURL + '/search.json?q=' + encodeURIComponent(openLibraryKeyword) + '&limit=12&fields=key,title,author_name,first_publish_year,subject',
+    method: 'GET',
+    headers: {},
+  };
+}`;
 
 // 转换函数只产出游戏需要的小说摘要契约，章节内容不进入本项目。
 export const defaultNovelApiMapResponseCode = `({ payload }) => ({

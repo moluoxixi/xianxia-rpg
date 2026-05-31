@@ -8,6 +8,8 @@ describe('novel api defaults', () => {
     expect(settings.novelApiProvider).toBe('custom-functions');
     expect(settings.novelApiBaseURL).toBe('https://openlibrary.org');
     expect(settings.novelApiBuildRequestCode).toContain('/search.json');
+    expect(settings.novelApiBuildRequestCode).toContain('fiction fantasy adventure');
+    expect(settings.novelApiBuildRequestCode).toContain('!keyword.includes(\'?\')');
     expect(settings.novelApiMapResponseCode).toContain('Open Library');
   });
 

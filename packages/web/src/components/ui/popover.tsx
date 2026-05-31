@@ -8,12 +8,12 @@ interface PopoverContextValue {
 
 const PopoverContext = React.createContext<PopoverContextValue | null>(null);
 
-export function Popover({ children }: { children: React.ReactNode }) {
+export function Popover({ children, className }: { children: React.ReactNode; className?: string }) {
   const [open, setOpen] = React.useState(false);
 
   return (
     <PopoverContext value={{ open, setOpen }}>
-      <span className="relative inline-flex">{children}</span>
+      <span className={cn('relative inline-flex', className)}>{children}</span>
     </PopoverContext>
   );
 }
