@@ -19,6 +19,9 @@ interface SaveGamePayload {
   runId?: string;
   character?: { name?: string; realm?: string; location?: string };
   currentScene?: string;
+  themeId?: string;
+  themeSource?: string;
+  scenario?: { referenceNovel?: string };
   scenes?: unknown;
   npcs?: unknown;
   inventory?: unknown;
@@ -157,19 +160,24 @@ export class GameDatabase {
   listGameSaves(): GameSaveSummary[] {
     const db = this.requireDb();
     const result = db.exec(
-      `SELECT run_id, player_name, realm, current_scene, updated_at
+      `SELECT run_id, player_name, realm, current_scene, updated_at, snapshot_json
        FROM game_runs
        ORDER BY updated_at DESC`,
     );
     const rows = result[0]?.values ?? [];
 
-    return rows.map(row => ({
-      runId: String(row[0]),
-      playerName: String(row[1]),
-      realm: String(row[2]),
-      currentScene: String(row[3]),
-      updatedAt: String(row[4]),
-    }));
+    return rows.map((row) => {
+      const snapshot = JSON.parse(String(row[5])) as SaveGamePayload;
+      return {
+        runId: String(row[0]),
+        playerName: String(row[1]),
+        realm: String(row[2]),
+        currentScene: String(row[3]),
+        updatedAt: String(row[4]),
+        themeId: snapshot.themeId,
+        referenceNovel: snapshot.scenario?.referenceNovel,
+      };
+    });
   }
 
   saveDeathArchive(data: SaveGamePayload): DeathArchiveRecord {

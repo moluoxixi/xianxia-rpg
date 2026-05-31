@@ -1,6 +1,6 @@
 import type { GameSaveSummary, NovelSummary, NPC } from '@xianxia-rpg/core';
 import type { ReactNode, RefObject } from 'react';
-import type { AIConfigForm, ChatMessage, Choice, Difficulty, GameState, InventoryItem } from '@/domain';
+import type { AIConfigForm, ChatMessage, Choice, Difficulty, GameState, GameThemeId, InventoryItem } from '@/domain';
 
 export interface AppHeaderProps {
   difficulty: Difficulty;
@@ -95,7 +95,9 @@ export interface MainMenuProps {
   searchingNovels: boolean;
   message: string;
   novelSearchMessage: string;
-  onNewGame: (novelTitle: string) => void;
+  activeThemeId: GameThemeId;
+  onNewGame: (novelTitle: string, themeId: GameThemeId) => void;
+  onContinueGame: () => void;
   onLoadSave: (runId: string) => void;
   onOpenSettings: () => void;
   onRefreshSaves: () => void;

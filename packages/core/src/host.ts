@@ -30,6 +30,8 @@ export interface GameSaveSummary {
   realm: string;
   currentScene: string;
   updatedAt: string;
+  themeId?: string;
+  referenceNovel?: string;
 }
 
 export interface HostLoadGameByRunIdPayload {

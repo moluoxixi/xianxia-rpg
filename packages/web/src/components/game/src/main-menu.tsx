@@ -1,9 +1,11 @@
 import type { NovelSummary } from '@xianxia-rpg/core';
 import type { MainMenuProps } from './types';
 import type { FormEvent } from 'react';
-import { BookOpen, Clock3, FolderOpen, Plus, RefreshCw, Search, Settings } from 'lucide-react';
+import { BookOpen, Clock3, FolderOpen, Play, Plus, RefreshCw, Search, Settings } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Button, Card, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Input, Select } from '@/components/ui';
+import { getGameThemePreset, inferThemeIdFromNovel, inferThemeIdFromSave } from '@/domain';
+import { cn } from '@/lib/utils';
 
 export function MainMenu({
   saves,
@@ -12,6 +14,8 @@ export function MainMenu({
   searchingNovels,
   message,
   novelSearchMessage,
+  activeThemeId,
+  onContinueGame,
   onLoadSave,
   onNewGame,
   onOpenSettings,
@@ -23,6 +27,10 @@ export function MainMenu({
   const [novelKeyword, setNovelKeyword] = useState('');
   const [selectedNovelId, setSelectedNovelId] = useState(novels[0]?.id ?? '');
   const selectedNovel = novels.find(novel => novel.id === selectedNovelId) ?? novels[0];
+  const latestSave = saves[0];
+  const selectedNovelThemeId = selectedNovel ? inferThemeIdFromNovel(selectedNovel.title, selectedNovel.description) : activeThemeId;
+  const visibleTheme = getGameThemePreset(newGameOpen && selectedNovel ? selectedNovelThemeId : activeThemeId);
+  const latestSaveTheme = latestSave ? getGameThemePreset(inferThemeIdFromSave(latestSave)) : null;
 
   useEffect(() => {
     if (newGameOpen)
@@ -38,7 +46,7 @@ export function MainMenu({
     if (!selectedNovel)
       return;
 
-    onNewGame(selectedNovel.title);
+    onNewGame(selectedNovel.title, selectedNovelThemeId);
     setNewGameOpen(false);
   }
 
@@ -53,20 +61,31 @@ export function MainMenu({
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background p-6 text-foreground">
-      <Card className="flex w-full max-w-[420px] flex-col justify-between p-6">
+    <main className={cn('theme-shell flex min-h-screen items-center justify-center p-6 text-foreground', visibleTheme.shellClassName)}>
+      <Card className="theme-menu-card flex w-full max-w-[440px] flex-col justify-between p-6">
         <div className="space-y-6">
-          <div className="space-y-2">
-            <div className="text-sm font-medium text-muted-foreground">AI 修仙文字冒险</div>
-            <h1 className="text-3xl font-semibold tracking-normal">半开放式剧本 RPG</h1>
-            <p className="text-sm leading-6 text-muted-foreground">选择参考小说后开局，系统会自动生成初始身份、场景和剧本基调。</p>
+          <div className="flex items-start gap-4">
+            <div className="theme-avatar" aria-hidden="true">{visibleTheme.avatarText}</div>
+            <div className="min-w-0 space-y-2">
+              <div className="theme-eyebrow text-sm font-medium">AI 文字冒险</div>
+              <h1 className="theme-title text-3xl font-semibold tracking-normal">半开放式剧本 RPG</h1>
+              <p className="theme-description text-sm leading-6">选择参考小说后开局，系统会自动生成初始身份、场景和剧本基调。</p>
+            </div>
           </div>
 
           <div className="space-y-3">
-            <Button className="w-full justify-start" onClick={() => setNewGameOpen(true)}>
+            <Button className={cn('w-full justify-start', latestSave ? 'theme-soft-action' : 'theme-primary-action')} variant={latestSave ? 'secondary' : 'default'} onClick={() => setNewGameOpen(true)}>
               <Plus className="h-4 w-4" />
               新开游戏
             </Button>
+            {latestSave
+              ? (
+                  <Button className="theme-primary-action w-full justify-start" onClick={onContinueGame}>
+                    <Play className="h-4 w-4" />
+                    继续游戏
+                  </Button>
+                )
+              : null}
             <Button className="w-full justify-start" variant="secondary" onClick={openLoadSaves}>
               <FolderOpen className="h-4 w-4" />
               读取存档
@@ -78,8 +97,10 @@ export function MainMenu({
           </div>
         </div>
 
-        <div className="rounded-md border border-border p-3 text-xs leading-5 text-muted-foreground">
-          当前存档会独立保存剧本、背包置顶、角色状态和场景进度。
+        <div className="theme-status rounded-md border p-3 text-xs leading-5">
+          {latestSave && latestSaveTheme
+            ? `当前主题：${latestSaveTheme.label} / 最近存档：${latestSave.playerName}，${latestSave.currentScene}`
+            : `默认主题：${visibleTheme.label} / 当前没有可继续的存档`}
         </div>
       </Card>
 
@@ -106,7 +127,7 @@ export function MainMenu({
             </label>
             {novelSearchMessage ? <p className="rounded-sm border border-destructive/40 bg-destructive/10 px-2 py-1 text-xs leading-5 text-destructive">{novelSearchMessage}</p> : null}
             <p className="min-h-10 text-xs leading-5 text-muted-foreground">
-              {selectedNovel ? `${selectedNovel.description} 来源：${selectedNovel.source}` : '暂无可用参考小说'}
+              {selectedNovel ? `${selectedNovel.description} 来源：${selectedNovel.source}，预览主题：${getGameThemePreset(selectedNovelThemeId).label}` : '暂无可用参考小说'}
             </p>
             <div className="flex justify-end gap-2">
               <Button variant="secondary" onClick={() => setNewGameOpen(false)}>取消</Button>

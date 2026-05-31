@@ -4,6 +4,7 @@ import type { ChatMessage, InventoryItem, InventoryViewItem, Role, Skill } from 
 import { STARTER_SCENES } from '@xianxia-rpg/core';
 import { createDefaultScenarioPack, normalizeScenarioPack } from './scenario';
 import type { ScenarioPack } from './scenario';
+import { normalizeThemeId, normalizeThemeSource } from './theme';
 
 export const pinnedItems = ['下品灵石', '黄龙丹', '长剑'];
 
@@ -201,6 +202,8 @@ export function createGameStateFromScenario(scenario: ScenarioPack): GameState {
     skills: createScenarioSkills(scenario),
     chatHistory: [],
     difficulty: 'normal',
+    themeId: scenario.themeId,
+    themeSource: scenario.themeSource,
     isDead: false,
     currentScene: scenario.initialSceneName,
     scenes: createScenarioScenes(scenario),
@@ -274,6 +277,8 @@ export function normalizeLoadedGameState(data: unknown): GameState | null {
     inventory: Array.isArray(loaded.inventory) ? loaded.inventory : fallback.inventory,
     skills: Array.isArray(loaded.skills) ? loaded.skills : fallback.skills,
     chatHistory: Array.isArray(loaded.chatHistory) ? loaded.chatHistory : fallback.chatHistory,
+    themeId: normalizeThemeId(loaded.themeId ?? scenario.themeId),
+    themeSource: normalizeThemeSource(loaded.themeSource ?? scenario.themeSource),
     scenes: mergeLoadedScenes(fallback.scenes, loaded.scenes),
     npcs: loaded.npcs ?? fallback.npcs,
     defeatedNpcs: Array.isArray(loaded.defeatedNpcs) ? loaded.defeatedNpcs : fallback.defeatedNpcs,

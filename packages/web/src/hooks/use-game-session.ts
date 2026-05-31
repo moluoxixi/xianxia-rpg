@@ -1,7 +1,7 @@
 import type { GameHostClient, GameSaveSummary, NovelSummary, NPC } from '@xianxia-rpg/core';
 import type { AIModelCatalog } from '@xianxia-rpg/model';
 import type { GameSessionController } from './types';
-import type { AIConfigForm, AppliedEvent, ApplyResourceResult, ChatMessage, Choice, Difficulty, GameState, InventoryItem, Role } from '@/domain';
+import type { AIConfigForm, AppliedEvent, ApplyResourceResult, ChatMessage, Choice, Difficulty, GameState, GameThemeId, InventoryItem, Role } from '@/domain';
 import { INITIAL_SCENE } from '@xianxia-rpg/core';
 import { createDefaultModelCatalog, createDefaultModelSettings } from '@xianxia-rpg/model';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -17,6 +17,7 @@ import {
   defaultNovelApiMapResponseCode,
   getDefaultQuickActions,
   getInventoryItemKey,
+  inferThemeIdFromNovel,
   mergeQuickActions,
   normalizeNovelApiProvider,
   normalizeLoadedGameState,
@@ -360,8 +361,8 @@ export function useGameSession(client?: GameHostClient): GameSessionController {
     return applyLoadedGame(result.data, '读档成功。');
   }
 
-  async function startNewGame(novelTitle = availableNovelScenarios[0].referenceNovel, difficulty: Difficulty = 'normal'): Promise<boolean> {
-    const nextState = cloneScenarioInitialState(createScenarioFromNovelTitle(novelTitle));
+  async function startNewGame(novelTitle = availableNovelScenarios[0].referenceNovel, difficulty: Difficulty = 'normal', themeId: GameThemeId = inferThemeIdFromNovel(novelTitle)): Promise<boolean> {
+    const nextState = cloneScenarioInitialState(createScenarioFromNovelTitle(novelTitle, themeId));
     nextState.difficulty = difficulty;
     const nextPinnedKeys = [...pinnedItems];
     setGameState(nextState);
@@ -376,7 +377,7 @@ export function useGameSession(client?: GameHostClient): GameSessionController {
   }
 
   function resetGame(): void {
-    void startNewGame(gameState.scenario.referenceNovel, gameState.difficulty).catch(error => reportAsyncError('重开存档', error));
+    void startNewGame(gameState.scenario.referenceNovel, gameState.difficulty, gameState.themeId).catch(error => reportAsyncError('重开存档', error));
   }
 
   function revivePlayer(): void {

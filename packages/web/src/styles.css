@@ -65,3 +65,211 @@
   text-shadow: 0 0 18px rgba(233, 69, 96, 0.65);
 }
 
+.theme-shell {
+  --theme-bg: #fff5fb;
+  --theme-panel: rgba(255, 255, 255, 0.82);
+  --theme-panel-border: rgba(236, 155, 194, 0.42);
+  --theme-title: #5f4560;
+  --theme-text: #7d647d;
+  --theme-muted: #9f849c;
+  --theme-accent: #f4a8c8;
+  --theme-accent-text: #48293a;
+  --theme-secondary: rgba(255, 235, 244, 0.86);
+  --theme-shadow: 0 28px 80px rgba(214, 133, 176, 0.28);
+  --theme-radius: 28px;
+  --theme-pattern: linear-gradient(rgba(255, 255, 255, 0.55) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.55) 1px, transparent 1px);
+  position: relative;
+  overflow: hidden;
+  background: var(--theme-bg);
+}
+
+.theme-shell::before {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  content: '';
+  background-image: var(--theme-pattern);
+  background-size: 28px 28px;
+  opacity: 0.45;
+}
+
+.theme-shell::after {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  content: '';
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.38), transparent 42%, rgba(255, 255, 255, 0.2));
+}
+
+.theme-menu-card {
+  position: relative;
+  z-index: 1;
+  min-height: 430px;
+  overflow: hidden;
+  border-color: var(--theme-panel-border);
+  border-radius: var(--theme-radius);
+  background: var(--theme-panel);
+  box-shadow: var(--theme-shadow);
+  backdrop-filter: blur(18px);
+}
+
+.theme-avatar {
+  display: grid;
+  width: 54px;
+  height: 54px;
+  flex: none;
+  place-items: center;
+  border: 1px solid var(--theme-panel-border);
+  border-radius: 999px;
+  background: var(--theme-secondary);
+  color: var(--theme-title);
+  font-size: 20px;
+  font-weight: 700;
+  box-shadow: inset 0 0 0 4px rgba(255, 255, 255, 0.32);
+}
+
+.theme-eyebrow {
+  color: var(--theme-muted);
+}
+
+.theme-title {
+  color: var(--theme-title);
+}
+
+.theme-description,
+.theme-status {
+  color: var(--theme-text);
+}
+
+.theme-status {
+  border-color: var(--theme-panel-border);
+  background: var(--theme-secondary);
+}
+
+.theme-primary-action,
+.theme-shell .theme-primary-action:hover {
+  border-color: transparent;
+  background: var(--theme-accent);
+  color: var(--theme-accent-text);
+}
+
+.theme-soft-action {
+  border: 1px solid var(--theme-panel-border);
+  background: var(--theme-secondary);
+  color: var(--theme-title);
+}
+
+.theme-shell-otome {
+  --theme-bg: #fff4fb;
+  --theme-panel: rgba(255, 255, 255, 0.78);
+  --theme-panel-border: rgba(238, 148, 197, 0.42);
+  --theme-title: #65435f;
+  --theme-text: #846a83;
+  --theme-muted: #a7849c;
+  --theme-accent: #f6abc9;
+  --theme-accent-text: #4f2d3c;
+  --theme-secondary: rgba(255, 232, 245, 0.82);
+  --theme-shadow: 0 30px 90px rgba(225, 142, 187, 0.3);
+}
+
+.theme-shell-xianxia {
+  --theme-bg: #f4efe3;
+  --theme-panel: rgba(255, 250, 239, 0.88);
+  --theme-panel-border: rgba(164, 129, 63, 0.45);
+  --theme-title: #4b3821;
+  --theme-text: #725f43;
+  --theme-muted: #947b52;
+  --theme-accent: #c79a43;
+  --theme-accent-text: #fff8e7;
+  --theme-secondary: rgba(241, 231, 207, 0.88);
+  --theme-shadow: 0 28px 86px rgba(97, 72, 35, 0.24);
+  --theme-pattern: radial-gradient(circle at 1px 1px, rgba(94, 69, 33, 0.18) 1px, transparent 0);
+  --theme-radius: 18px;
+}
+
+.theme-shell-campus {
+  --theme-bg: #f1fbff;
+  --theme-panel: rgba(255, 255, 255, 0.86);
+  --theme-panel-border: rgba(135, 197, 210, 0.45);
+  --theme-title: #44606b;
+  --theme-text: #637d85;
+  --theme-muted: #7fa1a8;
+  --theme-accent: #9bdccf;
+  --theme-accent-text: #244842;
+  --theme-secondary: rgba(230, 250, 246, 0.9);
+  --theme-shadow: 0 28px 80px rgba(98, 176, 184, 0.24);
+}
+
+.theme-shell-urban {
+  --theme-bg: #f3f1ee;
+  --theme-panel: rgba(253, 252, 249, 0.88);
+  --theme-panel-border: rgba(143, 135, 123, 0.34);
+  --theme-title: #303030;
+  --theme-text: #66605a;
+  --theme-muted: #8b8379;
+  --theme-accent: #31343a;
+  --theme-accent-text: #f7f2ea;
+  --theme-secondary: rgba(235, 232, 226, 0.86);
+  --theme-shadow: 0 28px 76px rgba(70, 66, 60, 0.18);
+  --theme-radius: 16px;
+}
+
+.theme-shell-suspense {
+  --theme-bg: #10151d;
+  --theme-panel: rgba(21, 28, 39, 0.82);
+  --theme-panel-border: rgba(109, 142, 166, 0.32);
+  --theme-title: #d9e7ed;
+  --theme-text: #a8bac3;
+  --theme-muted: #718894;
+  --theme-accent: #78a9bc;
+  --theme-accent-text: #071017;
+  --theme-secondary: rgba(31, 42, 55, 0.86);
+  --theme-shadow: 0 30px 92px rgba(3, 8, 14, 0.55);
+  --theme-pattern: linear-gradient(145deg, rgba(120, 169, 188, 0.08) 25%, transparent 25%, transparent 50%, rgba(120, 169, 188, 0.08) 50%, rgba(120, 169, 188, 0.08) 75%, transparent 75%, transparent);
+  --theme-radius: 14px;
+}
+
+.theme-shell-cyberpunk {
+  --theme-bg: #090d18;
+  --theme-panel: rgba(12, 17, 31, 0.78);
+  --theme-panel-border: rgba(75, 231, 255, 0.38);
+  --theme-title: #d8fbff;
+  --theme-text: #9ec8d1;
+  --theme-muted: #6da4b6;
+  --theme-accent: #4be7ff;
+  --theme-accent-text: #06121c;
+  --theme-secondary: rgba(24, 36, 60, 0.82);
+  --theme-shadow: 0 30px 94px rgba(0, 10, 24, 0.64);
+  --theme-pattern: linear-gradient(rgba(75, 231, 255, 0.12) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 105, 180, 0.08) 1px, transparent 1px);
+  --theme-radius: 12px;
+}
+
+.theme-shell-fantasy {
+  --theme-bg: #211a15;
+  --theme-panel: rgba(47, 36, 27, 0.86);
+  --theme-panel-border: rgba(190, 143, 72, 0.4);
+  --theme-title: #f1dec0;
+  --theme-text: #cbb28f;
+  --theme-muted: #9d815b;
+  --theme-accent: #b98b3f;
+  --theme-accent-text: #1f160d;
+  --theme-secondary: rgba(65, 49, 35, 0.86);
+  --theme-shadow: 0 32px 88px rgba(14, 9, 5, 0.5);
+  --theme-pattern: radial-gradient(circle at center, rgba(190, 143, 72, 0.12) 1px, transparent 1px);
+  --theme-radius: 14px;
+}
+
+.theme-shell-minguo {
+  --theme-bg: #efe0bf;
+  --theme-panel: rgba(255, 244, 218, 0.88);
+  --theme-panel-border: rgba(139, 93, 47, 0.34);
+  --theme-title: #513820;
+  --theme-text: #765d3e;
+  --theme-muted: #9a7950;
+  --theme-accent: #9b6332;
+  --theme-accent-text: #fff1d0;
+  --theme-secondary: rgba(240, 220, 181, 0.82);
+  --theme-shadow: 0 30px 80px rgba(95, 66, 31, 0.24);
+  --theme-pattern: linear-gradient(90deg, rgba(104, 68, 34, 0.08) 1px, transparent 1px);
+  --theme-radius: 24px;
+}

@@ -2,6 +2,7 @@ import type { ReactElement } from 'react';
 import type { AppProps } from './types';
 import { useState } from 'react';
 import { AppHeader, BreakthroughOverlay, ChatPanel, DeathOverlay, InventoryDialog, MainMenu, SettingsDialog, StatusSidebar } from '@/components/game';
+import { DEFAULT_THEME_ID, inferThemeIdFromSave, normalizeThemeId } from '@/domain';
 import { useGameSession } from '@/hooks';
 
 export function App({ hostClient }: AppProps): ReactElement {
@@ -62,6 +63,8 @@ export function App({ hostClient }: AppProps): ReactElement {
     void refreshGameSaves();
   }
 
+  const activeMenuThemeId = gameSaves[0] ? inferThemeIdFromSave(gameSaves[0]) : normalizeThemeId(gameState.themeId ?? DEFAULT_THEME_ID);
+
   if (screen === 'menu') {
     return (
       <div className="min-h-screen bg-background text-foreground">
@@ -72,7 +75,9 @@ export function App({ hostClient }: AppProps): ReactElement {
           novels={novels}
           novelSearchMessage={novelSearchMessage}
           searchingNovels={isSearchingNovels}
-          onNewGame={novelTitle => enterGameAfter(() => startNewGame(novelTitle))}
+          activeThemeId={activeMenuThemeId}
+          onNewGame={(novelTitle, themeId) => enterGameAfter(() => startNewGame(novelTitle, 'normal', themeId))}
+          onContinueGame={() => enterGameAfter(loadGame)}
           onLoadSave={runId => enterGameAfter(() => loadGameByRunId(runId))}
           onOpenSettings={openSettings}
           onRefreshSaves={() => void refreshGameSaves()}

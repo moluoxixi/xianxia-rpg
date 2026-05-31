@@ -28,4 +28,6 @@ export { defaultNovelApiBuildRequestCode, defaultNovelApiMapResponseCode, normal
 export type { LocalActionResolution } from './game-engine';
 export { availableNovelScenarios, createDefaultScenarioPack, createScenarioFromNovelTitle, normalizeScenarioPack } from './scenario';
 export type { NovelScenarioOption, ScenarioPack } from './scenario';
+export { DEFAULT_THEME_ID, gameThemePresets, getGameThemePreset, inferThemeIdFromNovel, inferThemeIdFromSave, normalizeThemeId, normalizeThemeSource, themeIds } from './theme';
+export type { GameThemeId, GameThemePreset, GameThemeSource, ThemeSaveSummary } from './theme';
 export type { AIConfigForm, CharacterInfo, CharacterStats, ChatMessage, Choice, Difficulty, InventoryItem, InventoryViewItem, NovelApiProvider, Role, Skill } from './types';

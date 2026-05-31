@@ -1,5 +1,6 @@
 import type { NPC, Scene } from '@xianxia-rpg/core';
 import type { ScenarioPack } from './scenario';
+import type { GameThemeId, GameThemeSource } from './theme';
 import type { CharacterInfo, CharacterStats, Difficulty, InventoryItem, Skill } from './types';
 
 export interface GameState {
@@ -11,6 +12,8 @@ export interface GameState {
   skills: Skill[];
   chatHistory: Array<{ role: string; content: string }>;
   difficulty: Difficulty;
+  themeId: GameThemeId;
+  themeSource: GameThemeSource;
   isDead: boolean;
   currentScene: string;
   scenes: Record<string, Scene>;
