@@ -31,8 +31,8 @@ export function SettingsDialog({ open, themeId, config, onOpenChange, onConfigCh
             : <SettingsNovelApiTab config={config} onConfigChange={onConfigChange} />}
 
           <div className="flex justify-end gap-2">
-            <Button variant="secondary" onClick={() => onOpenChange(false)}>取消</Button>
-            <Button onClick={onSave}>保存</Button>
+            <Button color="secondary" onClick={() => onOpenChange(false)}>取消</Button>
+            <Button color="accent" onClick={onSave}>保存</Button>
           </div>
         </div>
       </DialogContent>
@@ -42,7 +42,7 @@ export function SettingsDialog({ open, themeId, config, onOpenChange, onConfigCh
 
 function TabButton({ active, children, onClick }: { active: boolean; children: ReactNode; onClick: () => void }) {
   return (
-    <Button type="button" variant={active ? 'default' : 'ghost'} size="sm" aria-selected={active} onClick={onClick}>
+    <Button type="button" color={active ? 'accent' : 'secondary'} size="sm" aria-selected={active} onClick={onClick}>
       {children}
     </Button>
   );

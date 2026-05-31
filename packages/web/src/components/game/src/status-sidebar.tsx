@@ -20,8 +20,8 @@ export function StatusSidebar({
   const inventoryItems = createInventoryViewItems(gameState.inventory, pinnedInventoryKeys);
 
   return (
-    <aside className="w-[320px] shrink-0 overflow-y-auto bg-[#14142e] p-4">
-      <Card className="mb-4 p-3">
+    <aside className="theme-game-sidebar w-[320px] shrink-0 overflow-y-auto p-4">
+      <Card className="theme-game-card mb-4 p-3">
         <PanelTitle icon={<User className="h-4 w-4" />} title="角色状态" />
         <InfoRow label="剧本" value={gameState.scenario.title} />
         <InfoRow label="姓名" value={gameState.character.name} />
@@ -30,14 +30,14 @@ export function StatusSidebar({
         <InfoRow label="位置" value={gameState.character.location} />
       </Card>
 
-      <Card className="mb-4 p-3">
+      <Card className="theme-game-card mb-4 p-3">
         <PanelTitle icon={<Shield className="h-4 w-4" />} title="属性" />
         <StatBar icon={<Heart className="h-3.5 w-3.5" />} label="气血" value={gameState.stats.hp} max={gameState.stats.maxHp} className="from-hp-gradient-from to-hp-gradient-to" />
         <StatBar icon={<Waves className="h-3.5 w-3.5" />} label="灵力" value={gameState.stats.mp} max={gameState.stats.maxMp} className="from-mp-gradient-from to-mp-gradient-to" />
         <StatBar icon={<Sparkles className="h-3.5 w-3.5" />} label="修为" value={gameState.stats.exp} max={gameState.stats.maxExp} className="from-exp-gradient-from to-exp-gradient-to" />
       </Card>
 
-      <Card className="mb-4 p-3">
+      <Card className="theme-game-card mb-4 p-3">
         <PanelTitle icon={<Map className="h-4 w-4" />} title="当前场景" />
         <p className="text-sm text-foreground">{gameState.currentScene}</p>
         <p className="mt-1 text-xs text-muted-foreground">{gameState.scenes[gameState.currentScene]?.description || '场景信息由 AI 动态补全'}</p>
@@ -46,7 +46,7 @@ export function StatusSidebar({
         </div>
       </Card>
 
-      <Card className="mb-4 p-3 transition-colors hover:border-primary/50">
+      <Card className="theme-game-card mb-4 p-3 transition-colors hover:border-primary/50">
         <button type="button" className="w-full text-left" onClick={() => onOpenInventory()}>
           <PanelTitle icon={<Package className="h-4 w-4" />} title="背包" action="点击查看全部" />
         </button>
@@ -70,7 +70,7 @@ export function StatusSidebar({
         </div>
       </Card>
 
-      <Card className="mb-4 p-3">
+      <Card className="theme-game-card mb-4 p-3">
         <PanelTitle icon={<BookOpen className="h-4 w-4" />} title="功法" />
         <div className="flex flex-col gap-1.5">
           {gameState.skills.map(skill => (
@@ -84,7 +84,7 @@ export function StatusSidebar({
         </div>
       </Card>
 
-      <Card className="p-3">
+      <Card className="theme-game-card p-3">
         <PanelTitle icon={<MessageSquare className="h-4 w-4" />} title="场景 NPC" />
         {sceneNpcs.length === 0 ? <p className="text-xs text-muted-foreground">当前暂无已记录 NPC</p> : sceneNpcs.map(npc => <NpcRow key={npc.id} npc={npc} />)}
       </Card>

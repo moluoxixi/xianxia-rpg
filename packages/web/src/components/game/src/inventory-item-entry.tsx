@@ -34,7 +34,7 @@ export function InventoryItemEntry({
           <span className="min-w-0 flex-1 truncate">
             {item.name}
           </span>
-          <span className="shrink-0 text-muted-foreground">
+          <span className="shrink-0 text-foreground">
             x
             {item.count}
           </span>

@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 
 export function AppHeader({ difficulty, onLoad, onOpenMenu, onOpenSettings, onSave }: AppHeaderProps) {
   return (
-    <header className="app-region-drag flex items-center justify-between border-b-2 border-primary bg-[#13233d] px-5 py-2.5">
+    <header className="app-region-drag theme-game-header flex items-center justify-between border-b px-5 py-2.5">
       <div className="flex items-center gap-3">
         <Sparkles className="h-6 w-6 text-primary" />
         <h1 className="text-xl font-semibold tracking-[4px] text-primary">凡人修仙传</h1>
@@ -25,7 +25,7 @@ export function AppHeader({ difficulty, onLoad, onOpenMenu, onOpenSettings, onSa
 
 function HeaderButton({ icon, label, onClick }: HeaderButtonProps) {
   return (
-    <Button variant="outline" size="sm" onClick={onClick}>
+    <Button color="secondary" size="sm" onClick={onClick}>
       {icon}
       {label}
     </Button>
@@ -34,7 +34,7 @@ function HeaderButton({ icon, label, onClick }: HeaderButtonProps) {
 
 function DifficultyBadge({ difficulty }: Pick<AppHeaderProps, 'difficulty'>) {
   return (
-    <span className={cn('rounded border px-2.5 py-1 text-[11px]', difficulty === 'hard' ? 'border-destructive/50 bg-destructive/10 text-destructive' : 'border-system-gold/50 bg-system-gold/10 text-system-gold')}>
+    <span className={cn('rounded border px-2.5 py-1 text-[11px] font-medium', difficulty === 'hard' ? 'border-destructive/50 bg-destructive/10 text-destructive' : 'border-system-gold/50 bg-system-gold/20 text-[color:var(--theme-title)]')}>
       {difficulty === 'hard' ? '困难模式' : '简单模式'}
     </span>
   );

@@ -131,7 +131,7 @@ export function SettingsModelTab({ config, onConfigChange }: SettingsModelTabPro
             <h3 className="text-sm font-semibold tracking-normal">模型列表</h3>
             <p className="text-xs text-muted-foreground">下拉框只会从当前服务商的模型列表中选择真实调用模型。</p>
           </div>
-          <Button type="button" size="sm" variant="outline" onClick={addModelRow}>
+          <Button type="button" size="sm" color="secondary" onClick={addModelRow}>
             <Plus className="h-4 w-4" />
             新增行
           </Button>
@@ -155,7 +155,7 @@ export function SettingsModelTab({ config, onConfigChange }: SettingsModelTabPro
                     <Input value={model.name} onChange={event => changeModelRow(index, { name: event.target.value })} placeholder="GPT-5.2" />
                   </td>
                   <td className="px-2 py-2 text-right">
-                    <Button type="button" size="icon" variant="ghost" onClick={() => removeModelRow(index)} aria-label={`删除 ${model.name}`}>
+                    <Button type="button" size="icon" color="destructive" onClick={() => removeModelRow(index)} aria-label={`删除 ${model.name}`}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </td>

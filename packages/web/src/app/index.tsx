@@ -1,12 +1,15 @@
 import type { ReactElement } from 'react';
 import type { AppProps } from './types';
+import type { GameThemeId } from '@/domain';
 import { useState } from 'react';
 import { AppHeader, BreakthroughOverlay, ChatPanel, DeathOverlay, InventoryDialog, MainMenu, SettingsDialog, StatusSidebar } from '@/components/game';
-import { DEFAULT_THEME_ID, inferThemeIdFromSave, normalizeThemeId } from '@/domain';
+import { DEFAULT_THEME_ID, getGameThemePreset, inferThemeIdFromSave, normalizeThemeId } from '@/domain';
 import { useGameSession } from '@/hooks';
+import { cn } from '@/lib/utils';
 
 export function App({ hostClient }: AppProps): ReactElement {
   const [screen, setScreen] = useState<'menu' | 'game'>('menu');
+  const [previewThemeId, setPreviewThemeId] = useState<GameThemeId | null>(null);
   const {
     activateInventoryItem,
     breakthroughRealm,
@@ -64,7 +67,10 @@ export function App({ hostClient }: AppProps): ReactElement {
     void refreshGameSaves();
   }
 
-  const activeMenuThemeId = gameSaves[0] ? inferThemeIdFromSave(gameSaves[0]) : normalizeThemeId(gameState.themeId ?? DEFAULT_THEME_ID);
+  const savedMenuThemeId = gameSaves[0] ? inferThemeIdFromSave(gameSaves[0]) : normalizeThemeId(gameState.themeId ?? DEFAULT_THEME_ID);
+  const activeMenuThemeId = previewThemeId ?? savedMenuThemeId;
+  const activeGameThemeId = normalizeThemeId(gameState.themeId ?? DEFAULT_THEME_ID);
+  const activeGameTheme = getGameThemePreset(activeGameThemeId);
 
   if (screen === 'menu') {
     return (
@@ -82,6 +88,7 @@ export function App({ hostClient }: AppProps): ReactElement {
           onDeleteSave={deleteGameSave}
           onLoadSave={runId => enterGameAfter(() => loadGameByRunId(runId))}
           onOpenSettings={openSettings}
+          onPreviewThemeChange={setPreviewThemeId}
           onRefreshSaves={() => void refreshGameSaves()}
           onSearchNovels={searchNovels}
         />
@@ -91,9 +98,9 @@ export function App({ hostClient }: AppProps): ReactElement {
   }
 
   return (
-    <div className="flex h-screen flex-col bg-background text-foreground">
+    <div className={cn('theme-shell theme-game-shell flex h-screen flex-col text-foreground', activeGameTheme.shellClassName)}>
       <AppHeader difficulty={gameState.difficulty} onOpenMenu={openMenu} onOpenSettings={openSettings} onSave={saveGame} onLoad={loadGame} />
-      <main className="flex min-h-0 flex-1">
+      <main className="theme-game-layout flex min-h-0 flex-1">
         <ChatPanel messages={messages} viewportRef={viewportRef} characterName={gameState.character.name} choices={choices} quickActions={quickActions} input={input} isSending={isSending} onInputChange={setInput} onSend={sendAction} />
         <StatusSidebar gameState={gameState} sceneNpcs={sceneNpcs} selectedInventoryKey={selectedInventoryKey} pinnedInventoryKeys={pinnedInventoryKeys} onOpenInventory={openInventory} onSelectInventoryItem={selectInventoryItem} onUseInventoryItem={activateInventoryItem} onDropInventoryItem={dropInventoryItem} onToggleInventoryPin={toggleInventoryPin} />
       </main>

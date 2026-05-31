@@ -98,6 +98,7 @@ export interface MainMenuProps {
   message: string;
   novelSearchMessage: string;
   activeThemeId: GameThemeId;
+  onPreviewThemeChange: (themeId: GameThemeId) => void;
   onNewGame: (novelTitle: string, themeId: GameThemeId, themeSource: GameThemeSource) => void;
   onContinueGame: () => void;
   onDeleteSave: (runId: string) => Promise<boolean>;

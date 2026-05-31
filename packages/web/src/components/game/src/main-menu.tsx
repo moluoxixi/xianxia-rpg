@@ -20,6 +20,7 @@ export function MainMenu({
   onLoadSave,
   onNewGame,
   onOpenSettings,
+  onPreviewThemeChange,
   onRefreshSaves,
   onSearchNovels,
 }: MainMenuProps) {
@@ -101,33 +102,41 @@ export function MainMenu({
           </div>
 
           <div className="space-y-3">
-            <Button className={cn('w-full justify-start', latestSave ? 'theme-soft-action' : 'theme-primary-action')} variant={latestSave ? 'secondary' : 'default'} onClick={() => setNewGameOpen(true)}>
+            <Button className="theme-menu-action w-full" color={latestSave ? 'secondary' : 'accent'} onClick={() => setNewGameOpen(true)}>
               <Plus className="h-4 w-4" />
               新开游戏
             </Button>
             {latestSave
               ? (
-                  <Button className="theme-primary-action w-full justify-start" onClick={onContinueGame}>
+                  <Button className="theme-menu-action w-full" color="accent" onClick={onContinueGame}>
                     <Play className="h-4 w-4" />
                     继续游戏
                   </Button>
                 )
               : null}
-            <Button className="w-full justify-start" variant="secondary" onClick={openLoadSaves}>
+            <Button className="theme-menu-action w-full" color="secondary" onClick={openLoadSaves}>
               <FolderOpen className="h-4 w-4" />
               读取存档
             </Button>
-            <Button className="w-full justify-start" variant="outline" onClick={onOpenSettings}>
+            <Button className="theme-menu-action w-full" color="secondary" onClick={onOpenSettings}>
               <Settings className="h-4 w-4" />
               设置
             </Button>
           </div>
         </div>
 
-        <div className="theme-status rounded-md border p-3 text-xs leading-5">
-          {latestSave && latestSaveTheme
-            ? `当前主题：${latestSaveTheme.label} / 最近存档：${latestSave.playerName}，${latestSave.currentScene}`
-            : `默认主题：${visibleTheme.label} / 当前没有可继续的存档`}
+        <div className="theme-status space-y-2 rounded-md border p-3 text-xs leading-5">
+          <div>
+            {latestSave && latestSaveTheme
+              ? `预览主题：${visibleTheme.label} / 最近存档：${latestSave.playerName}，${latestSave.currentScene} / 存档风格：${latestSaveTheme.label}`
+              : `预览主题：${visibleTheme.label} / 当前没有可继续的存档`}
+          </div>
+          <label className="block space-y-1.5">
+            <span className="font-medium text-[color:var(--theme-muted)]">临时切换主题</span>
+            <Select value={activeThemeId} onChange={event => onPreviewThemeChange(event.target.value as GameThemeId)}>
+              {themeIds.map(themeId => <option key={themeId} value={themeId}>{formatThemeOption(themeId)}</option>)}
+            </Select>
+          </label>
         </div>
       </Card>
 
