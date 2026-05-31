@@ -1,12 +1,17 @@
 import type { NPC, Scene } from '@xianxia-rpg/core';
 import type { AppliedEvent, ApplyResourceResult, GameState, ResourceChange } from './game-state';
 import { resolveCombat, STARTER_SCENES } from '@xianxia-rpg/core';
-import { realmLevels, resourceRealmReq, skillRealmReq } from './game-data';
+import { getNextRealm, getRealmLevel, getRealmMaxExp, resourceRealmReq, resolveRealmName, skillRealmReq } from './game-data';
 
 interface AdjudicationResult {
   accepted: boolean;
   reason?: string;
   probability?: number;
+}
+
+export interface LocalActionResolution {
+  changes: ResourceChange[];
+  aiInstruction: string;
 }
 
 export function buildPlayerStatus(gameState: GameState): string {
@@ -15,16 +20,22 @@ export function buildPlayerStatus(gameState: GameState): string {
     .filter(npc => npc.location === gameState.currentScene && !gameState.defeatedNpcs.includes(npc.id))
     .map(npc => `${npc.name}（${npc.realm},${npc.role === 'enemy' ? '敌人' : npc.role === 'merchant' ? '商人' : '剧情NPC'},好感:${npc.favorability}${npc.attackable ? ',可攻击' : ''}）`);
 
-  return `【玩家状态】\n境界:${gameState.character.realm} 气血:${gameState.stats.hp}/${gameState.stats.maxHp} 灵力:${gameState.stats.mp}/${gameState.stats.maxMp} 修为:${gameState.stats.exp}/${gameState.stats.maxExp}\n位置:${gameState.character.location}\n背包:${gameState.inventory.map(i => `${i.name}×${i.count}`).join(', ') || '空'}\n功法:${gameState.skills.map(s => `${s.name}(${s.level})`).join(', ') || '无'}\n\n【当前场景】${gameState.currentScene}\n类型:${currentSceneData?.type ?? '未知'}\n描述:${currentSceneData?.description || '未记录'}\n关联场景:${currentSceneData?.connectedScenes.join(', ') || '无'}\n可获取:${currentSceneData?.availableResources.join(', ') || '无'}\n危险:${currentSceneData?.isDangerous ? '是' : '否'}\n场景NPC:${sceneNpcs.join(', ') || '无'}\n\n【已解锁场景】${Object.keys(gameState.scenes).join(', ')}`;
+  return `【玩家状态】\n境界:${gameState.character.realm} 下一境界:${getNextRealm(gameState.character.realm) ?? '已至顶阶'} 气血:${gameState.stats.hp}/${gameState.stats.maxHp} 灵力:${gameState.stats.mp}/${gameState.stats.maxMp} 修为:${gameState.stats.exp}/${gameState.stats.maxExp}\n位置:${gameState.character.location}\n背包:${gameState.inventory.map(i => `${i.name}×${i.count}`).join(', ') || '空'}\n功法:${gameState.skills.map(s => `${s.name}(${s.level})`).join(', ') || '无'}\n\n【当前场景】${gameState.currentScene}\n类型:${currentSceneData?.type ?? '未知'}\n描述:${currentSceneData?.description || '未记录'}\n关联场景:${currentSceneData?.connectedScenes.join(', ') || '无'}\n可获取:${currentSceneData?.availableResources.join(', ') || '无'}\n危险:${currentSceneData?.isDangerous ? '是' : '否'}\n场景NPC:${sceneNpcs.join(', ') || '无'}\n\n【已解锁场景】${Object.keys(gameState.scenes).join(', ')}`;
 }
 
 export function createLocalActionChanges(state: GameState, actionText: string): ResourceChange[] {
   const changes: ResourceChange[] = [];
   if (isCultivationAction(actionText)) {
+    const nextExp = Math.min(state.stats.maxExp, state.stats.exp + getCultivationGain(state));
     changes.push({
       type: 'exp',
-      value: Math.min(state.stats.maxExp, state.stats.exp + getCultivationGain(state)),
+      value: nextExp,
     });
+    if (nextExp >= state.stats.maxExp) {
+      const nextRealm = getNextRealm(state.character.realm);
+      if (nextRealm)
+        changes.push({ type: 'realm', value: nextRealm });
+    }
   }
 
   if (isHuanglongDanAction(actionText)) {
@@ -39,6 +50,14 @@ export function createLocalActionChanges(state: GameState, actionText: string): 
   }
 
   return changes;
+}
+
+export function resolveLocalAction(state: GameState, actionText: string): LocalActionResolution {
+  const changes = createLocalActionChanges(state, actionText);
+  return {
+    changes,
+    aiInstruction: buildActionAIInstruction(actionText, changes),
+  };
 }
 
 export function removeRemoteChangesCoveredByLocal(remoteChanges: ResourceChange[], localChanges: ResourceChange[]): ResourceChange[] {
@@ -275,8 +294,8 @@ function adjudicateNpcAdd(state: GameState, change: ResourceChange): Adjudicatio
   if (npcId && state.npcs[npcId])
     return { accepted: false, reason: `NPC「${state.npcs[npcId].name}」已存在，新增请求应改为更新。` };
 
-  const npcLevel = realmLevels[change.npc_realm ?? '凡人'] ?? 0;
-  const playerLevel = realmLevels[state.character.realm] ?? 1;
+  const npcLevel = getRealmLevel(change.npc_realm ?? '凡人');
+  const playerLevel = getRealmLevel(state.character.realm);
   const scene = state.scenes[change.npc_location ?? state.currentScene];
   const gap = npcLevel - playerLevel;
   if (gap <= 3)
@@ -309,7 +328,7 @@ function adjudicateFavorability(state: GameState, change: ResourceChange): Adjud
 
 function adjudicateCombat(state: GameState, change: ResourceChange): AdjudicationResult {
   const enemyLevel = inferCombatRealmLevel(change);
-  const playerLevel = realmLevels[state.character.realm] ?? 1;
+  const playerLevel = getRealmLevel(state.character.realm);
   const scene = state.scenes[state.currentScene];
   const gap = enemyLevel - playerLevel;
   if (gap <= 4)
@@ -321,8 +340,8 @@ function adjudicateCombat(state: GameState, change: ResourceChange): Adjudicatio
 }
 
 function adjudicateRealm(state: GameState, change: ResourceChange): AdjudicationResult {
-  const targetLevel = realmLevels[String(change.value ?? '')] ?? 0;
-  const currentLevel = realmLevels[state.character.realm] ?? 0;
+  const targetLevel = getRealmLevel(String(change.value ?? ''));
+  const currentLevel = getRealmLevel(state.character.realm);
   if (targetLevel <= currentLevel + 1)
     return { accepted: true };
   return rollChance(0.02, `境界跃迁过大，突破机缘未能成立。`, 0.02);
@@ -331,8 +350,8 @@ function adjudicateRealm(state: GameState, change: ResourceChange): Adjudication
 function adjudicateOverlevelChance(state: GameState, requiredRealm: string | undefined, label: string): AdjudicationResult {
   if (!requiredRealm)
     return { accepted: true };
-  const playerLevel = realmLevels[state.character.realm] ?? 0;
-  const requiredLevel = realmLevels[requiredRealm] ?? 0;
+  const playerLevel = getRealmLevel(state.character.realm);
+  const requiredLevel = getRealmLevel(requiredRealm);
   const gap = requiredLevel - playerLevel;
   if (gap <= 0)
     return { accepted: true };
@@ -379,16 +398,18 @@ function removeItem(next: GameState, change: ResourceChange): string {
 }
 
 function updateRealm(next: GameState, change: ResourceChange): string {
-  const newRealm = String(change.value ?? '');
+  const newRealm = resolveRealmName(String(change.value ?? ''));
   if (!newRealm)
     return '';
   const oldRealm = next.character.realm;
+  const realmLevel = getRealmLevel(newRealm);
   next.character.realm = newRealm;
-  next.stats.maxHp += 20;
-  next.stats.maxMp += 20;
+  next.stats.maxHp = Math.max(next.stats.maxHp + 20, 80 + realmLevel * 20);
+  next.stats.maxMp = Math.max(next.stats.maxMp + 20, 80 + realmLevel * 24);
   next.stats.hp = next.stats.maxHp;
   next.stats.mp = next.stats.maxMp;
   next.stats.exp = 0;
+  next.stats.maxExp = getRealmMaxExp(newRealm);
   return `境界突破：${oldRealm} -> ${newRealm}`;
 }
 
@@ -436,14 +457,37 @@ function isCultivationAction(actionText: string): boolean {
   return actionText.includes('修炼') || actionText.includes('练功') || actionText.includes('打坐') || actionText.includes('长春功');
 }
 
+function buildActionAIInstruction(actionText: string, changes: ResourceChange[]): string {
+  const settled = describeLocalSettlements(changes);
+  if (settled.length > 0) {
+    return `【本地规则已结算】玩家行动「${actionText}」已经由本地规则处理：${settled.join('；')}。AI 不要重复返回这些同类资源变化，只推导额外的场景、人物、机缘、风险或快捷指令。`;
+  }
+  return `【AI 推导请求】玩家行动「${actionText}」没有固定本地数值结算，请根据当前人物数据、背包、功法、场景和凡人修仙传氛围推导合理后果；若产生资源、场景、NPC 或战斗变化，必须返回结构化资源变化。`;
+}
+
+function describeLocalSettlements(changes: ResourceChange[]): string[] {
+  const descriptions: string[] = [];
+  if (changes.some(change => change.type === 'exp'))
+    descriptions.push('修炼修为已更新');
+  if (changes.some(change => change.type === 'realm'))
+    descriptions.push('境界突破已更新');
+  if (changes.some(change => change.type === 'item_remove' && change.name === '黄龙丹'))
+    descriptions.push('黄龙丹扣除已处理');
+  if (changes.some(change => change.type === 'hp'))
+    descriptions.push('气血恢复已处理');
+  return descriptions;
+}
+
 function isHuanglongDanAction(actionText: string): boolean {
   return actionText.includes('黄龙丹') && (actionText.includes('服用') || actionText.includes('使用'));
 }
 
 function getCultivationGain(state: GameState): number {
+  const sceneRate = state.currentScene === '练功房' ? 0.12 : 0.06;
+  const scaledGain = Math.round(state.stats.maxExp * sceneRate);
   if (state.currentScene === '练功房')
-    return 16;
-  return 8;
+    return Math.max(16, scaledGain);
+  return Math.max(8, scaledGain);
 }
 
 function addSkill(next: GameState, change: ResourceChange): string {
@@ -544,8 +588,8 @@ function checkResourceAccess(gameState: GameState, itemName: string): { canUse: 
   const req = resourceRealmReq[itemName];
   if (!req)
     return { canUse: true, reason: '' };
-  const playerLevel = realmLevels[gameState.character.realm] ?? 0;
-  const reqLevel = realmLevels[req] ?? 0;
+  const playerLevel = getRealmLevel(gameState.character.realm);
+  const reqLevel = getRealmLevel(req);
   if (playerLevel < reqLevel)
     return { canUse: false, reason: `你的境界不足以使用${itemName}（需要${req}）` };
   return { canUse: true, reason: '' };

@@ -39,41 +39,121 @@ export const itemIcons: Record<string, string> = {
   妖兽内丹: '丹',
 };
 
-export const realmLevels: Record<string, number> = {
-  凡兽: 0,
-  一阶妖兽: 1,
-  二阶妖兽: 2,
-  三阶妖兽: 3,
-  炼气期一层: 1,
-  炼气期二层: 2,
-  炼气期三层: 3,
-  炼气期四层: 4,
-  炼气期五层: 5,
-  炼气期六层: 6,
-  炼气期七层: 7,
-  炼气期八层: 8,
-  炼气期九层: 9,
-  筑基期: 10,
-  结丹期: 15,
-  元婴期: 20,
+export const cultivationRealms = [
+  '凡人',
+  '炼气期一层',
+  '炼气期二层',
+  '炼气期三层',
+  '炼气期四层',
+  '炼气期五层',
+  '炼气期六层',
+  '炼气期七层',
+  '炼气期八层',
+  '炼气期九层',
+  '炼气期十层',
+  '炼气期十一层',
+  '炼气期十二层',
+  '炼气期十三层',
+  '筑基期初期',
+  '筑基期中期',
+  '筑基期后期',
+  '结丹期初期',
+  '结丹期中期',
+  '结丹期后期',
+  '元婴期初期',
+  '元婴期中期',
+  '元婴期后期',
+  '化神期初期',
+  '化神期中期',
+  '化神期后期',
+  '炼虚期初期',
+  '炼虚期中期',
+  '炼虚期后期',
+  '合体期初期',
+  '合体期中期',
+  '合体期后期',
+  '大乘期初期',
+  '大乘期中期',
+  '大乘期后期',
+  '渡劫期',
+  '真仙境',
+] as const;
+
+export type CultivationRealm = typeof cultivationRealms[number];
+
+export const realmAliases: Record<string, CultivationRealm> = {
+  筑基期: '筑基期初期',
+  结丹期: '结丹期初期',
+  元婴期: '元婴期初期',
+  化神期: '化神期初期',
+  炼虚期: '炼虚期初期',
+  合体期: '合体期初期',
+  大乘期: '大乘期初期',
 };
 
+export const realmLevels: Record<string, number> = createRealmLevels();
+
 export const resourceRealmReq: Record<string, string> = {
-  筑基丹: '炼气期九层',
-  结丹丸: '筑基期',
-  飞剑: '炼气期五层',
-  中品灵石: '炼气期三层',
-  上品灵石: '筑基期',
-  护身符: '炼气期二层',
+  筑基丹: '炼气期十三层',
+  结丹丸: '筑基期后期',
+  飞剑: '炼气期七层',
+  中品灵石: '筑基期初期',
+  上品灵石: '结丹期初期',
+  护身符: '炼气期三层',
+  妖兽内丹: '筑基期后期',
 };
 
 export const skillRealmReq: Record<string, string> = {
   青元剑诀: '炼气期七层',
-  大衍诀: '筑基期',
-  玄阴经: '筑基期',
-  三转重元功: '结丹期',
-  元磁神光: '元婴期',
+  大衍诀: '筑基期初期',
+  玄阴经: '筑基期中期',
+  三转重元功: '结丹期初期',
+  元磁神光: '元婴期后期',
 };
+
+export function resolveRealmName(realm: string): string {
+  return realmAliases[realm] ?? realm;
+}
+
+export function getRealmLevel(realm: string): number {
+  return realmLevels[resolveRealmName(realm)] ?? 0;
+}
+
+export function getNextRealm(realm: string): string | null {
+  const resolvedRealm = resolveRealmName(realm);
+  const index = cultivationRealms.findIndex(item => item === resolvedRealm);
+  if (index === -1 || index >= cultivationRealms.length - 1)
+    return null;
+  return cultivationRealms[index + 1];
+}
+
+export function getRealmMaxExp(realm: string): number {
+  const level = Math.max(1, getRealmLevel(realm));
+  return Math.round(100 * level ** 1.35);
+}
+
+function createRealmLevels(): Record<string, number> {
+  const levels: Record<string, number> = {
+    凡兽: 0,
+    一阶妖兽: 4,
+    二阶妖兽: 8,
+    三阶妖兽: 12,
+    四阶妖兽: 16,
+    五阶妖兽: 20,
+    六阶妖兽: 24,
+    七阶妖兽: 28,
+    八阶妖兽: 32,
+    九阶妖兽: 36,
+    十阶妖兽: 40,
+  };
+  cultivationRealms.forEach((realm, index) => {
+    levels[realm] = index;
+  });
+  for (const [alias, realm] of Object.entries(realmAliases)) {
+    levels[alias] = levels[realm];
+  }
+  return levels;
+}
 
 export function createRunId(): string {
   return `run_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
@@ -109,7 +189,7 @@ export function createInitialGameState(): GameState {
   return {
     runId: createRunId(),
     character: { name: '韩立', realm: '炼气期一层', sect: '七玄门', location: INITIAL_SCENE.name },
-    stats: { hp: 100, maxHp: 100, mp: 80, maxMp: 100, exp: 10, maxExp: 100 },
+    stats: { hp: 100, maxHp: 100, mp: 80, maxMp: 100, exp: 10, maxExp: getRealmMaxExp('炼气期一层') },
     inventory: [
       { id: 'item_huanglongdan', name: '黄龙丹', count: 3, type: 'pill', rarity: 'low', usable: true, description: itemDescriptions.黄龙丹 },
       { id: 'item_low_spirit_stone', name: '下品灵石', count: 50, type: 'spirit_stone', rarity: 'low', description: itemDescriptions.下品灵石 },

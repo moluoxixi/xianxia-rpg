@@ -7,7 +7,6 @@ import {
   applyResourceChanges,
   buildPlayerStatus,
   cloneInitialState,
-  createLocalActionChanges,
   createMessage,
   getDefaultQuickActions,
   getInventoryItemKey,
@@ -18,6 +17,7 @@ import {
   parseQuickActions,
   parseResourceChanges,
   removeRemoteChangesCoveredByLocal,
+  resolveLocalAction,
   stripChoices,
 } from '@/domain';
 import { getGameHostClient } from '@/host';
@@ -167,12 +167,17 @@ export function useGameSession(client?: GameHostClient): GameSessionController {
     setIsSending(true);
     pushMessage('user', text);
 
-    const localChanges = createLocalActionChanges(gameState, text);
+    const localResolution = resolveLocalAction(gameState, text);
+    const localChanges = localResolution.changes;
     const localBaseState = structuredClone(gameState);
     localBaseState.chatHistory = [...gameState.chatHistory, { role: 'user', content: text }];
     const localApplied: ApplyResourceResult = localChanges.length > 0 ? applyResourceChanges(localBaseState, localChanges) : { nextState: localBaseState, summary: '', events: [] };
     const stateForAI = localApplied.nextState;
-    const history = [...gameState.chatHistory, { role: 'system', content: buildPlayerStatus(stateForAI) }];
+    const history = [
+      ...gameState.chatHistory,
+      { role: 'system', content: buildPlayerStatus(stateForAI) },
+      { role: 'system', content: localResolution.aiInstruction },
+    ];
 
     try {
       const result = await hostClient.sendMessage({ message: text, history });
