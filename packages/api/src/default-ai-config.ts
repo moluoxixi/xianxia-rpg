@@ -1,13 +1,23 @@
-import type { AIProviderConfig } from './ai';
+import type { AIProviderConfig, AIProviderType } from './ai';
 import { createDefaultModelSettings } from '@xianxia-rpg/model';
+import { createDefaultProviderApiKeys, loadRuntimeEnv } from './env';
+
+loadRuntimeEnv();
+
+export interface RuntimeAIConfig extends AIProviderConfig {
+  /** Per-provider defaults come from server-side environment variables and follow provider switching in the UI. */
+  providerApiKeys: Record<AIProviderType, string>;
+}
 
 const defaultModelSettings = createDefaultModelSettings('openai');
+const defaultProviderApiKeys = createDefaultProviderApiKeys();
 
-export const defaultAIConfig: AIProviderConfig = {
+export const defaultAIConfig: RuntimeAIConfig = {
   type: 'openai',
   baseURL: defaultModelSettings.baseURL,
-  apiKey: '',
+  apiKey: defaultProviderApiKeys.openai,
   model: defaultModelSettings.model,
+  providerApiKeys: defaultProviderApiKeys,
   maxTokens: defaultModelSettings.maxTokens,
   temperature: defaultModelSettings.temperature,
   systemPrompt: `你是一个半开放式文字 RPG 的 AI 叙事者和游戏主持人。
@@ -27,6 +37,6 @@ export const defaultAIConfig: AIProviderConfig = {
 {"actions":["修炼长春功","前往后山","查看状态","返回居所"]}`,
 };
 
-export function createDefaultAIConfig(): AIProviderConfig {
-  return { ...defaultAIConfig };
+export function createDefaultAIConfig(): RuntimeAIConfig {
+  return { ...defaultAIConfig, providerApiKeys: { ...defaultAIConfig.providerApiKeys } };
 }

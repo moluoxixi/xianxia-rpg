@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import type { AIConfigForm, NovelApiProvider } from '@/domain';
-import { Input, Select, Textarea } from '@/components/ui';
+import { Input, PasswordInput, Select, Textarea } from '@/components/ui';
 import { defaultNovelApiBuildRequestCode, defaultNovelApiMapResponseCode } from '@/domain';
 
 interface SelectOption<T extends string = string> {
@@ -45,7 +45,7 @@ export function SettingsNovelApiTab({ config, onConfigChange }: SettingsNovelApi
                 <Input value={config.novelApiBaseURL} onChange={event => onConfigChange({ ...config, novelApiBaseURL: event.target.value })} placeholder="https://example.com/api" />
               </Field>
               <Field label="小说 API Key">
-                <Input type="password" value={config.novelApiKey} onChange={event => onConfigChange({ ...config, novelApiKey: event.target.value })} autoComplete="off" />
+                <PasswordInput value={config.novelApiKey} onChange={event => onConfigChange({ ...config, novelApiKey: event.target.value })} autoComplete="off" />
               </Field>
             </>
           )

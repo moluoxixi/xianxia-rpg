@@ -49,6 +49,10 @@ const defaultConfig: AIConfigForm = {
   type: defaultModelSettings.type,
   baseURL: defaultModelSettings.baseURL,
   apiKey: '',
+  providerApiKeys: {
+    openai: '',
+    anthropic: '',
+  },
   model: defaultModelSettings.model,
   modelCatalog: defaultModelSettings.modelCatalog,
   maxTokens: String(defaultModelSettings.maxTokens),
@@ -324,10 +328,18 @@ export function useGameSession(client?: GameHostClient): GameSessionController {
     const result = await hostClient.loadAIConfig();
     if (result.success && result.data && typeof result.data === 'object') {
       const loaded = result.data as Record<string, unknown>;
+      const type = (loaded.type ?? 'openai') as AIConfigForm['type'];
+      const providerApiKeys = {
+        ...defaultConfig.providerApiKeys,
+        ...(loaded.providerApiKeys as Partial<AIConfigForm['providerApiKeys']> | undefined),
+      };
+      const apiKey = String(loaded.apiKey ?? providerApiKeys[type] ?? '');
+      providerApiKeys[type] = apiKey;
       setConfig({
-        type: (loaded.type ?? 'openai') as AIConfigForm['type'],
+        type,
         baseURL: String(loaded.baseURL ?? ''),
-        apiKey: String(loaded.apiKey ?? ''),
+        apiKey,
+        providerApiKeys,
         model: String(loaded.model ?? ''),
         modelCatalog: createDefaultModelCatalog(loaded.modelCatalog as Partial<AIModelCatalog>),
         maxTokens: String(loaded.maxTokens ?? 2048),
@@ -344,8 +356,9 @@ export function useGameSession(client?: GameHostClient): GameSessionController {
   }
 
   async function saveSettings(): Promise<void> {
-    const { type, baseURL, apiKey, model, modelCatalog, maxTokens, temperature, novelApiProvider, novelApiBaseURL, novelApiKey, novelApiBuildRequestCode, novelApiMapResponseCode } = config;
-    await hostClient.saveAIConfig({ type, baseURL, apiKey, model, modelCatalog, maxTokens: Number(maxTokens), temperature: Number(temperature), novelApiProvider, novelApiBaseURL, novelApiKey, novelApiBuildRequestCode, novelApiMapResponseCode });
+    const { type, baseURL, apiKey, providerApiKeys, model, modelCatalog, maxTokens, temperature, novelApiProvider, novelApiBaseURL, novelApiKey, novelApiBuildRequestCode, novelApiMapResponseCode } = config;
+    const nextProviderApiKeys = { ...providerApiKeys, [type]: apiKey };
+    await hostClient.saveAIConfig({ type, baseURL, apiKey, providerApiKeys: nextProviderApiKeys, model, modelCatalog, maxTokens: Number(maxTokens), temperature: Number(temperature), novelApiProvider, novelApiBaseURL, novelApiKey, novelApiBuildRequestCode, novelApiMapResponseCode });
     pushMessage('system', '模型配置已保存并生效。');
     setSettingsOpen(false);
   }

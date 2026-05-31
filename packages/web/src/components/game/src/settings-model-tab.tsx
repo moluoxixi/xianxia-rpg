@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import type { AIConfigForm } from '@/domain';
 import { AI_PROVIDER_PRESETS, createCustomModelRow, getAIProviderPreset, resolveSelectedModelId } from '@xianxia-rpg/model';
 import { Plus, Trash2 } from 'lucide-react';
-import { Button, Input, Select } from '@/components/ui';
+import { Button, Input, PasswordInput, Select } from '@/components/ui';
 
 interface SelectOption<T extends string = string> {
   label: string;
@@ -41,13 +41,27 @@ export function SettingsModelTab({ config, onConfigChange }: SettingsModelTabPro
   function changeProvider(type: AIModelProviderType): void {
     const preset = getAIProviderPreset(type);
     const providerModels = config.modelCatalog[type];
+    const providerApiKeys = { ...config.providerApiKeys, [provider]: config.apiKey };
     onConfigChange({
       ...config,
       type,
       baseURL: preset.baseURL,
+      apiKey: providerApiKeys[type],
+      providerApiKeys,
       model: resolveSelectedModelId(preset.model, providerModels),
       maxTokens: String(preset.maxTokens),
       temperature: String(preset.temperature),
+    });
+  }
+
+  function changeApiKey(apiKey: string): void {
+    onConfigChange({
+      ...config,
+      apiKey,
+      providerApiKeys: {
+        ...config.providerApiKeys,
+        [provider]: apiKey,
+      },
     });
   }
 
@@ -111,7 +125,7 @@ export function SettingsModelTab({ config, onConfigChange }: SettingsModelTabPro
           <Input value={config.baseURL} onChange={event => onConfigChange({ ...config, baseURL: event.target.value })} placeholder={getAIProviderPreset(provider).baseURL} />
         </Field>
         <Field label="API Key">
-          <Input type="password" value={config.apiKey} onChange={event => onConfigChange({ ...config, apiKey: event.target.value })} placeholder="sk-..." autoComplete="off" />
+          <PasswordInput value={config.apiKey} onChange={event => changeApiKey(event.target.value)} placeholder="sk-..." autoComplete="off" />
         </Field>
         <Field label="Max Tokens">
           <Select value={config.maxTokens} onChange={event => onConfigChange({ ...config, maxTokens: event.target.value })}>

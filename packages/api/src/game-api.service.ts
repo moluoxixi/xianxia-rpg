@@ -6,6 +6,7 @@ import { createDefaultNovelApiSettings, normalizeNovelApiProvider } from '@xianx
 import type { AIChatRequest, AIProviderConfig } from './ai';
 import { chatWithAI } from './ai';
 import { createDefaultAIConfig } from './default-ai-config';
+import type { RuntimeAIConfig } from './default-ai-config';
 import { GameDatabase } from './infrastructure/database';
 import { searchRemoteNovels } from './novel-search';
 import type { NovelApiSettings } from './novel-search';
@@ -14,13 +15,13 @@ import type { NovelApiSettings } from './novel-search';
 export class GameApiService implements OnModuleInit {
   private readonly database = new GameDatabase(path.join(getDataDir(), 'game-runs.sqlite'));
 
-  private readonly aiConfig: AIProviderConfig = createDefaultAIConfig();
+  private readonly aiConfig: RuntimeAIConfig = createDefaultAIConfig();
 
   async onModuleInit(): Promise<void> {
     await this.database.init();
     const storedConfig = this.database.loadAIConfig();
     if (storedConfig) {
-      Object.assign(this.aiConfig, storedConfig);
+      Object.assign(this.aiConfig, normalizeRuntimeAIConfig(this.aiConfig, storedConfig));
     }
   }
 
@@ -102,22 +103,24 @@ export class GameApiService implements OnModuleInit {
     return result.success ? { success: true, reply: result.reply } : { success: false, reply: '', error: result.error ?? '未知错误' };
   }
 
-  async updateAIConfig(config: Partial<AIProviderConfig>): Promise<{ success: boolean; message: string }> {
-    Object.assign(this.aiConfig, config);
+  async updateAIConfig(config: HostSettingsPayload): Promise<{ success: boolean; message: string }> {
+    Object.assign(this.aiConfig, normalizeRuntimeAIConfig(this.aiConfig, config));
     return { success: true, message: `AI 配置已更新: ${this.aiConfig.type} / ${this.aiConfig.model}` };
   }
 
   async saveAIConfig(config: HostSettingsPayload): Promise<{ success: boolean; message: string }> {
     await this.database.init();
-    this.database.saveAIConfig(config);
-    Object.assign(this.aiConfig, config);
+    const normalizedConfig = normalizeRuntimeAIConfig(this.aiConfig, config);
+    this.database.saveAIConfig({ ...normalizedConfig });
+    Object.assign(this.aiConfig, normalizedConfig);
     return { success: true, message: 'AI 配置已保存' };
   }
 
-  async loadAIConfig(): Promise<{ success: boolean; data: AIProviderConfig }> {
+  async loadAIConfig(): Promise<{ success: boolean; data: RuntimeAIConfig }> {
     await this.database.init();
     const storedConfig = this.database.loadAIConfig();
-    return { success: true, data: { ...this.aiConfig, ...createDefaultNovelApiSettings(), ...storedConfig } };
+    const runtimeConfig = storedConfig ? normalizeRuntimeAIConfig(this.aiConfig, storedConfig) : this.aiConfig;
+    return { success: true, data: { ...createDefaultNovelApiSettings(), ...runtimeConfig } };
   }
 
   async testAIConnection(testConfig: Record<string, unknown>): Promise<{ success: boolean; reply?: string; error?: string }> {
@@ -137,4 +140,27 @@ export class GameApiService implements OnModuleInit {
 
 function getDataDir(): string {
   return process.env.XIANXIA_DATA_DIR ?? path.join(process.cwd(), 'data');
+}
+
+function normalizeRuntimeAIConfig(baseConfig: RuntimeAIConfig, patch: HostSettingsPayload): RuntimeAIConfig {
+  const type = (patch.type ?? baseConfig.type) as RuntimeAIConfig['type'];
+  const providerApiKeys = {
+    ...baseConfig.providerApiKeys,
+    ...(patch.providerApiKeys as Partial<RuntimeAIConfig['providerApiKeys']> | undefined),
+  };
+  const providers: RuntimeAIConfig['type'][] = ['openai', 'anthropic'];
+  for (const provider of providers) {
+    providerApiKeys[provider] = providerApiKeys[provider] || baseConfig.providerApiKeys[provider];
+  }
+
+  const apiKey = String(patch.apiKey || providerApiKeys[type] || baseConfig.apiKey);
+  providerApiKeys[type] = apiKey;
+
+  return {
+    ...baseConfig,
+    ...patch,
+    type,
+    apiKey,
+    providerApiKeys,
+  } as RuntimeAIConfig;
 }

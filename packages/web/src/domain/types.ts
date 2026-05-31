@@ -64,6 +64,7 @@ export interface AIConfigForm {
   type: AIProviderType;
   baseURL: string;
   apiKey: string;
+  providerApiKeys: Record<AIProviderType, string>;
   model: string;
   modelCatalog: AIModelCatalog;
   maxTokens: string;
