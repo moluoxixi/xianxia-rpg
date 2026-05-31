@@ -1,4 +1,4 @@
-import type { HostInventoryPinsLoadPayload, HostInventoryPinsPayload, HostLoadGameByRunIdPayload } from '@xianxia-rpg/core';
+import type { HostDeleteGamePayload, HostInventoryPinsLoadPayload, HostInventoryPinsPayload, HostLoadGameByRunIdPayload } from '@xianxia-rpg/core';
 import { Body, Controller, Get, Inject, Post } from '@nestjs/common';
 import { GameApiService } from './game-api.service';
 
@@ -24,6 +24,11 @@ export class GameController {
   @Get('saves')
   listGameSaves(): ReturnType<GameApiService['listGameSaves']> {
     return this.gameApi.listGameSaves();
+  }
+
+  @Post('delete')
+  deleteGame(@Body() payload: HostDeleteGamePayload): ReturnType<GameApiService['deleteGame']> {
+    return this.gameApi.deleteGame(payload.runId);
   }
 
   @Post('death-archives')

@@ -1,10 +1,10 @@
 import type { NovelSummary } from '@xianxia-rpg/core';
 import type { MainMenuProps } from './types';
-import type { FormEvent } from 'react';
-import { BookOpen, Clock3, FolderOpen, Play, Plus, RefreshCw, Search, Settings } from 'lucide-react';
+import type { GameThemeId, GameThemeSource } from '@/domain';
+import { BookOpen, Clock3, FolderOpen, Play, Plus, RefreshCw, Settings, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Button, Card, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Input, Select } from '@/components/ui';
-import { getGameThemePreset, inferThemeIdFromNovel, inferThemeIdFromSave } from '@/domain';
+import { Button, Card, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Input, Popover, PopoverClose, PopoverContent, PopoverTrigger, Select, buttonVariants } from '@/components/ui';
+import { gameThemePresets, getGameThemePreset, inferThemeIdFromNovel, inferThemeIdFromSave, themeIds } from '@/domain';
 import { cn } from '@/lib/utils';
 
 export function MainMenu({
@@ -16,6 +16,7 @@ export function MainMenu({
   novelSearchMessage,
   activeThemeId,
   onContinueGame,
+  onDeleteSave,
   onLoadSave,
   onNewGame,
   onOpenSettings,
@@ -24,29 +25,42 @@ export function MainMenu({
 }: MainMenuProps) {
   const [newGameOpen, setNewGameOpen] = useState(false);
   const [loadSavesOpen, setLoadSavesOpen] = useState(false);
-  const [novelKeyword, setNovelKeyword] = useState('');
+  const [deletingRunId, setDeletingRunId] = useState<string | null>(null);
+  const [novelFilter, setNovelFilter] = useState('');
   const [selectedNovelId, setSelectedNovelId] = useState(novels[0]?.id ?? '');
+  const [manualThemeId, setManualThemeId] = useState<GameThemeId | null>(null);
   const selectedNovel = novels.find(novel => novel.id === selectedNovelId) ?? novels[0];
   const latestSave = saves[0];
   const selectedNovelThemeId = selectedNovel ? inferThemeIdFromNovel(selectedNovel.title, selectedNovel.description) : activeThemeId;
-  const visibleTheme = getGameThemePreset(newGameOpen && selectedNovel ? selectedNovelThemeId : activeThemeId);
+  const selectedThemeId = manualThemeId ?? selectedNovelThemeId;
+  const selectedThemeSource: GameThemeSource = manualThemeId ? 'user-override' : 'novel-auto';
+  const visibleTheme = getGameThemePreset(newGameOpen ? selectedThemeId : activeThemeId);
   const latestSaveTheme = latestSave ? getGameThemePreset(inferThemeIdFromSave(latestSave)) : null;
 
   useEffect(() => {
-    if (newGameOpen)
-      void onSearchNovels('');
-  }, [newGameOpen, onSearchNovels]);
+    if (!newGameOpen)
+      return undefined;
 
-  function searchNovel(event: FormEvent<HTMLFormElement>): void {
-    event.preventDefault();
-    void onSearchNovels(novelKeyword);
+    const timer = window.setTimeout(() => {
+      void onSearchNovels(novelFilter);
+    }, 320);
+    return () => window.clearTimeout(timer);
+  }, [newGameOpen, novelFilter, onSearchNovels]);
+
+  function selectNovel(novelId: string): void {
+    setSelectedNovelId(novelId);
+    setManualThemeId(null);
+  }
+
+  function selectTheme(themeId: GameThemeId): void {
+    setManualThemeId(themeId === selectedNovelThemeId ? null : themeId);
   }
 
   function startSelectedNovel(): void {
     if (!selectedNovel)
       return;
 
-    onNewGame(selectedNovel.title, selectedNovelThemeId);
+    onNewGame(selectedNovel.title, selectedThemeId, selectedThemeSource);
     setNewGameOpen(false);
   }
 
@@ -58,6 +72,16 @@ export function MainMenu({
   function loadSelectedSave(runId: string): void {
     setLoadSavesOpen(false);
     onLoadSave(runId);
+  }
+
+  async function deleteSelectedSave(runId: string): Promise<void> {
+    setDeletingRunId(runId);
+    try {
+      await onDeleteSave(runId);
+    }
+    finally {
+      setDeletingRunId(null);
+    }
   }
 
   return (
@@ -108,27 +132,25 @@ export function MainMenu({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>新开游戏</DialogTitle>
-            <DialogDescription className="sr-only">搜索并选择参考小说。</DialogDescription>
+            <DialogDescription className="sr-only">选择参考小说和主题。</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 p-5">
-            <form className="flex gap-2" onSubmit={searchNovel}>
-              <Input value={novelKeyword} onChange={event => setNovelKeyword(event.target.value)} placeholder="搜索小说名或作者" />
-              <Button type="submit" size="icon" disabled={searchingNovels} aria-label="搜索小说">
-                <Search className="h-4 w-4" />
-              </Button>
-            </form>
             <label className="space-y-1.5">
               <span className="text-xs font-semibold text-muted-foreground">参考小说</span>
-              <Select value={selectedNovel?.id ?? ''} onChange={event => setSelectedNovelId(event.target.value)} disabled={novels.length === 0 || searchingNovels}>
+              <Input value={novelFilter} onChange={event => setNovelFilter(event.target.value)} placeholder="输入小说名或作者过滤" />
+              <Select value={selectedNovel?.id ?? ''} onChange={event => selectNovel(event.target.value)} disabled={novels.length === 0 || searchingNovels}>
                 {novels.map(novel => (
                   <option key={novel.id} value={novel.id}>{formatNovelOption(novel)}</option>
                 ))}
               </Select>
             </label>
-            {novelSearchMessage ? <p className="rounded-sm border border-destructive/40 bg-destructive/10 px-2 py-1 text-xs leading-5 text-destructive">{novelSearchMessage}</p> : null}
-            <p className="min-h-10 text-xs leading-5 text-muted-foreground">
-              {selectedNovel ? `${selectedNovel.description} 来源：${selectedNovel.source}，预览主题：${getGameThemePreset(selectedNovelThemeId).label}` : '暂无可用参考小说'}
-            </p>
+            <label className="space-y-1.5">
+              <span className="text-xs font-semibold text-muted-foreground">主题</span>
+              <Select value={selectedThemeId} onChange={event => selectTheme(event.target.value as GameThemeId)}>
+                {themeIds.map(themeId => <option key={themeId} value={themeId}>{formatThemeOption(themeId)}</option>)}
+              </Select>
+            </label>
+            {novelSearchMessage && novels.length === 0 ? <p className="rounded-sm border border-destructive/40 bg-destructive/10 px-2 py-1 text-xs leading-5 text-destructive">{novelSearchMessage}</p> : null}
             <div className="flex justify-end gap-2">
               <Button variant="secondary" onClick={() => setNewGameOpen(false)}>取消</Button>
               <Button disabled={!selectedNovel || searchingNovels} onClick={startSelectedNovel}>
@@ -159,25 +181,48 @@ export function MainMenu({
 
             <div className="max-h-[46vh] space-y-3 overflow-y-auto pr-1">
               {saves.map(save => (
-                <button
+                <div
                   key={save.runId}
-                  type="button"
-                  className="flex w-full items-center justify-between gap-4 rounded-md border border-border bg-card p-4 text-left transition-colors hover:border-primary/60 hover:bg-accent"
-                  onClick={() => loadSelectedSave(save.runId)}
+                  className="flex w-full items-center justify-between gap-3 rounded-md border border-border bg-card p-3 transition-colors hover:border-primary/60"
                 >
-                  <div className="min-w-0 space-y-1">
-                    <div className="flex items-center gap-2 text-sm font-semibold">
-                      <FolderOpen className="h-4 w-4 shrink-0 text-primary" />
-                      <span className="truncate">{save.playerName}</span>
-                      <span className="rounded-sm bg-secondary px-2 py-0.5 text-xs text-secondary-foreground">{save.realm}</span>
+                  <button
+                    type="button"
+                    className="min-w-0 flex-1 rounded-sm p-1 text-left transition-colors hover:bg-accent"
+                    onClick={() => loadSelectedSave(save.runId)}
+                  >
+                    <div className="min-w-0 space-y-1">
+                      <div className="flex items-center gap-2 text-sm font-semibold">
+                        <FolderOpen className="h-4 w-4 shrink-0 text-primary" />
+                        <span className="truncate">{save.playerName}</span>
+                        <span className="rounded-sm bg-secondary px-2 py-0.5 text-xs text-secondary-foreground">{save.realm}</span>
+                      </div>
+                      <div className="truncate text-sm text-muted-foreground">{save.currentScene}</div>
                     </div>
-                    <div className="truncate text-sm text-muted-foreground">{save.currentScene}</div>
+                  </button>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Clock3 className="h-3.5 w-3.5" />
+                      {formatSaveTime(save.updatedAt)}
+                    </div>
+                    <Popover>
+                      <PopoverTrigger className={buttonVariants({ variant: 'ghost', size: 'icon' })} aria-label={`删除 ${save.playerName} 的存档`}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </PopoverTrigger>
+                      <PopoverContent align="end" className="space-y-3">
+                        <div className="space-y-1">
+                          <div className="text-sm font-semibold text-foreground">删除这个存档？</div>
+                          <p className="text-xs leading-5 text-muted-foreground">删除后会移除该存档及背包置顶记录；如果它是当前存档，会同步清空当前运行态。</p>
+                        </div>
+                        <div className="flex justify-end gap-2">
+                          <PopoverClose className={buttonVariants({ variant: 'secondary', size: 'sm' })}>取消</PopoverClose>
+                          <PopoverClose className={buttonVariants({ variant: 'destructive', size: 'sm' })} disabled={deletingRunId === save.runId} onClick={() => void deleteSelectedSave(save.runId)}>
+                            确认删除
+                          </PopoverClose>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
                   </div>
-                  <div className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
-                    <Clock3 className="h-3.5 w-3.5" />
-                    {formatSaveTime(save.updatedAt)}
-                  </div>
-                </button>
+                </div>
               ))}
             </div>
 
@@ -192,6 +237,11 @@ export function MainMenu({
 
 function formatNovelOption(novel: NovelSummary): string {
   return `${novel.title} / ${novel.author}`;
+}
+
+function formatThemeOption(themeId: GameThemeId): string {
+  const theme = gameThemePresets[themeId];
+  return `${theme.label} / ${theme.tone}`;
 }
 
 function formatSaveTime(value: string): string {

@@ -4,5 +4,6 @@ export { Card } from './card';
 export { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from './context-menu';
 export { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from './dialog';
 export { Input } from './input';
+export { Popover, PopoverClose, PopoverContent, PopoverTrigger } from './popover';
 export { Select } from './select';
 export { Textarea } from './textarea';

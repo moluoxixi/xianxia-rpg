@@ -1,9 +1,8 @@
-import type { AIProviderType } from '@xianxia-rpg/core';
+import type { AIProviderType, NovelApiProvider } from '@xianxia-rpg/core';
 import type { AIModelCatalog } from '@xianxia-rpg/model';
 
 export type Role = 'user' | 'assistant' | 'system';
 export type Difficulty = 'normal' | 'hard';
-export type NovelApiProvider = 'disabled' | 'compatible' | 'custom-functions';
 
 export interface CharacterInfo {
   name: string;

@@ -180,6 +180,16 @@ export class GameDatabase {
     });
   }
 
+  deleteGame(runId: string): boolean {
+    const db = this.requireDb();
+    db.run('DELETE FROM inventory_pins WHERE run_id = ?', [runId]);
+    db.run('DELETE FROM death_archives WHERE run_id = ?', [runId]);
+    db.run('DELETE FROM game_runs WHERE run_id = ?', [runId]);
+    const deleted = db.getRowsModified() > 0;
+    this.persist();
+    return deleted;
+  }
+
   saveDeathArchive(data: SaveGamePayload): DeathArchiveRecord {
     const db = this.requireDb();
     const createdAt = new Date().toISOString();

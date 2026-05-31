@@ -26,6 +26,8 @@ export {
 export type {
   GameSaveSummary,
   GameHostClient,
+  HostDeleteGamePayload,
+  HostDeleteGameResult,
   HostGameSavesResult,
   HostAIConfigResult,
   HostConnectionResult,
@@ -49,6 +51,19 @@ export type {
   NovelSearchPayload,
   NovelSummary,
 } from './src/novel';
+export {
+  createDefaultNovelApiSettings,
+  defaultNovelApiBaseURL,
+  defaultNovelApiBuildRequestCode,
+  defaultNovelApiKey,
+  defaultNovelApiMapResponseCode,
+  defaultNovelApiProvider,
+  normalizeNovelApiProvider,
+} from './src/novel-api-config';
+export type {
+  NovelApiProvider,
+  NovelApiSettingsPreset,
+} from './src/novel-api-config';
 export {
   INITIAL_SCENE,
   STARTER_SCENES,

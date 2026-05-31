@@ -1,7 +1,7 @@
 import type { GameHostClient, GameSaveSummary, NovelSummary, NPC } from '@xianxia-rpg/core';
 import type { AIModelCatalog } from '@xianxia-rpg/model';
 import type { GameSessionController } from './types';
-import type { AIConfigForm, AppliedEvent, ApplyResourceResult, ChatMessage, Choice, Difficulty, GameState, GameThemeId, InventoryItem, Role } from '@/domain';
+import type { AIConfigForm, AppliedEvent, ApplyResourceResult, ChatMessage, Choice, Difficulty, GameState, GameThemeId, GameThemeSource, InventoryItem, Role } from '@/domain';
 import { INITIAL_SCENE } from '@xianxia-rpg/core';
 import { createDefaultModelCatalog, createDefaultModelSettings } from '@xianxia-rpg/model';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -13,8 +13,11 @@ import {
   cloneInitialState,
   createMessage,
   createScenarioFromNovelTitle,
+  defaultNovelApiBaseURL,
   defaultNovelApiBuildRequestCode,
+  defaultNovelApiKey,
   defaultNovelApiMapResponseCode,
+  defaultNovelApiProvider,
   getDefaultQuickActions,
   getInventoryItemKey,
   inferThemeIdFromNovel,
@@ -49,9 +52,9 @@ const defaultConfig: AIConfigForm = {
   maxTokens: String(defaultModelSettings.maxTokens),
   temperature: String(defaultModelSettings.temperature),
   systemPrompt: '',
-  novelApiProvider: 'disabled',
-  novelApiBaseURL: '',
-  novelApiKey: '',
+  novelApiProvider: defaultNovelApiProvider,
+  novelApiBaseURL: defaultNovelApiBaseURL,
+  novelApiKey: defaultNovelApiKey,
   novelApiBuildRequestCode: defaultNovelApiBuildRequestCode,
   novelApiMapResponseCode: defaultNovelApiMapResponseCode,
 };
@@ -150,6 +153,19 @@ export function useGameSession(client?: GameHostClient): GameSessionController {
 
   function reportAsyncError(scope: string, error: unknown): void {
     pushMessage('system', `${scope}失败：${error instanceof Error ? error.message : String(error)}`);
+  }
+
+  function clearCurrentGameSession(message?: string): void {
+    const nextInitialGameState = cloneInitialState();
+    setGameState(nextInitialGameState);
+    setMessages(message ? [welcomeMessage, createMessage('system', message)] : [welcomeMessage]);
+    setInput('');
+    setQuickActions(getDefaultQuickActions(nextInitialGameState));
+    setChoices([]);
+    setPinnedInventoryKeys([...pinnedItems]);
+    setSelectedInventoryKey(null);
+    setInventoryOpen(false);
+    setBreakthroughRealm('');
   }
 
   async function persistInventoryPins(runId: string, nextPinnedKeys: string[]): Promise<void> {
@@ -316,8 +332,8 @@ export function useGameSession(client?: GameHostClient): GameSessionController {
         temperature: String(loaded.temperature ?? 0.7),
         systemPrompt: String(loaded.systemPrompt ?? ''),
         novelApiProvider: normalizeNovelApiProvider(loaded.novelApiProvider),
-        novelApiBaseURL: String(loaded.novelApiBaseURL ?? ''),
-        novelApiKey: String(loaded.novelApiKey ?? ''),
+        novelApiBaseURL: String(loaded.novelApiBaseURL ?? defaultNovelApiBaseURL),
+        novelApiKey: String(loaded.novelApiKey ?? defaultNovelApiKey),
         novelApiBuildRequestCode: String(loaded.novelApiBuildRequestCode ?? defaultNovelApiBuildRequestCode),
         novelApiMapResponseCode: String(loaded.novelApiMapResponseCode ?? defaultNovelApiMapResponseCode),
       });
@@ -361,8 +377,22 @@ export function useGameSession(client?: GameHostClient): GameSessionController {
     return applyLoadedGame(result.data, '读档成功。');
   }
 
-  async function startNewGame(novelTitle = availableNovelScenarios[0].referenceNovel, difficulty: Difficulty = 'normal', themeId: GameThemeId = inferThemeIdFromNovel(novelTitle)): Promise<boolean> {
-    const nextState = cloneScenarioInitialState(createScenarioFromNovelTitle(novelTitle, themeId));
+  async function deleteGameSave(runId: string): Promise<boolean> {
+    const result = await hostClient.deleteGameSave(runId);
+    if (!result.success) {
+      setSaveListMessage(result.message);
+      return false;
+    }
+
+    if (runId === gameState.runId)
+      clearCurrentGameSession('当前存档已删除，运行状态已清空。');
+
+    await refreshGameSaves();
+    return true;
+  }
+
+  async function startNewGame(novelTitle = availableNovelScenarios[0].referenceNovel, difficulty: Difficulty = 'normal', themeId: GameThemeId = inferThemeIdFromNovel(novelTitle), themeSource: GameThemeSource = 'novel-auto'): Promise<boolean> {
+    const nextState = cloneScenarioInitialState(createScenarioFromNovelTitle(novelTitle, themeId, themeSource));
     nextState.difficulty = difficulty;
     const nextPinnedKeys = [...pinnedItems];
     setGameState(nextState);
@@ -377,7 +407,7 @@ export function useGameSession(client?: GameHostClient): GameSessionController {
   }
 
   function resetGame(): void {
-    void startNewGame(gameState.scenario.referenceNovel, gameState.difficulty, gameState.themeId).catch(error => reportAsyncError('重开存档', error));
+    void startNewGame(gameState.scenario.referenceNovel, gameState.difficulty, gameState.themeId, gameState.themeSource).catch(error => reportAsyncError('重开存档', error));
   }
 
   function revivePlayer(): void {
@@ -455,6 +485,7 @@ export function useGameSession(client?: GameHostClient): GameSessionController {
     saveGame,
     loadGame,
     loadGameByRunId,
+    deleteGameSave,
     startNewGame,
     resetGame,
     revivePlayer,

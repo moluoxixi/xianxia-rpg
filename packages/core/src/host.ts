@@ -24,6 +24,12 @@ export interface HostLoadGameResult {
   message?: string;
 }
 
+export interface HostDeleteGameResult {
+  success: boolean;
+  message: string;
+  runId?: string;
+}
+
 export interface GameSaveSummary {
   runId: string;
   playerName: string;
@@ -35,6 +41,10 @@ export interface GameSaveSummary {
 }
 
 export interface HostLoadGameByRunIdPayload {
+  runId: string;
+}
+
+export interface HostDeleteGamePayload {
   runId: string;
 }
 
@@ -101,6 +111,7 @@ export type HostRequestPath
     | '/ai/config/test'
     | '/game/save'
     | '/game/load'
+    | '/game/delete'
     | '/game/latest'
     | '/game/saves'
     | '/game/death-archives'
@@ -117,6 +128,8 @@ export interface GameHostClient {
   loadGame: () => Promise<HostLoadGameResult>;
   /** 按存档 ID 读取游戏快照。 */
   loadGameByRunId: (runId: string) => Promise<HostLoadGameResult>;
+  /** 删除指定游戏存档，若删除当前存档，前端应同步清空运行态。 */
+  deleteGameSave: (runId: string) => Promise<HostDeleteGameResult>;
   /** 列出可读取的游戏存档。 */
   listGameSaves: () => Promise<HostGameSavesResult>;
   /** 按当前存档读取背包置顶项。 */

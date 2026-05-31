@@ -12,6 +12,7 @@ export function App({ hostClient }: AppProps): ReactElement {
     breakthroughRealm,
     choices,
     config,
+    deleteGameSave,
     dropInventoryItem,
     gameState,
     gameSaves,
@@ -76,8 +77,9 @@ export function App({ hostClient }: AppProps): ReactElement {
           novelSearchMessage={novelSearchMessage}
           searchingNovels={isSearchingNovels}
           activeThemeId={activeMenuThemeId}
-          onNewGame={(novelTitle, themeId) => enterGameAfter(() => startNewGame(novelTitle, 'normal', themeId))}
+          onNewGame={(novelTitle, themeId, themeSource) => enterGameAfter(() => startNewGame(novelTitle, 'normal', themeId, themeSource))}
           onContinueGame={() => enterGameAfter(loadGame)}
+          onDeleteSave={deleteGameSave}
           onLoadSave={runId => enterGameAfter(() => loadGameByRunId(runId))}
           onOpenSettings={openSettings}
           onRefreshSaves={() => void refreshGameSaves()}

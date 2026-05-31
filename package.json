@@ -20,6 +20,7 @@
     "build": "pnpm run build:model && pnpm run build:core && pnpm run build:main && pnpm run build:web && pnpm run build:api",
     "start:api": "pnpm --filter @xianxia-rpg/api run start",
     "start": "pnpm run build && electron .",
+    "test:novels": "pnpm exec vitest run packages/web/src/domain/__test__/novel-api-config.test.ts",
     "test:themes": "pnpm exec vitest run packages/web/src/domain/__test__/theme.test.ts",
     "typecheck": "pnpm run build:model && pnpm run build:core && pnpm --filter @xianxia-rpg/model run typecheck && pnpm --filter @xianxia-rpg/core run typecheck && pnpm --filter @xianxia-rpg/web run typecheck && pnpm --filter @xianxia-rpg/api run typecheck && tsc --noEmit -p tsconfig.main.json",
     "lint": "eslint .",

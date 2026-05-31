@@ -16,7 +16,7 @@ interface SettingsNovelApiTabProps {
 const novelApiProviderOptions: SelectOption<NovelApiProvider>[] = [
   { label: '暂不启用', value: 'disabled' },
   { label: '兼容协议 Base URL', value: 'compatible' },
-  { label: '函数适配', value: 'custom-functions' },
+  { label: 'Open Library 函数适配', value: 'custom-functions' },
 ];
 
 const novelFunctionContract = '请求函数返回 { url, method, headers, body }；响应函数返回 { novels: [{ id, title, author, description, source }] }。';

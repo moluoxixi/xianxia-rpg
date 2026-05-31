@@ -81,13 +81,13 @@ export function createDefaultScenarioPack(): ScenarioPack {
   };
 }
 
-export function createScenarioFromNovelTitle(novelTitle: string, themeId: GameThemeId = inferThemeIdFromNovel(novelTitle)): ScenarioPack {
+export function createScenarioFromNovelTitle(novelTitle: string, themeId: GameThemeId = inferThemeIdFromNovel(novelTitle), themeSource: GameThemeSource = 'novel-auto'): ScenarioPack {
   const title = novelTitle;
   if (title === '凡人修仙传') {
     return {
       ...createDefaultScenarioPack(),
       themeId,
-      themeSource: 'novel-auto',
+      themeSource,
     };
   }
 
@@ -100,7 +100,7 @@ export function createScenarioFromNovelTitle(novelTitle: string, themeId: GameTh
     stylePrompt: `参考《${title}》的题材气质、世界规则、人物关系和叙事节奏。不要直接复述原文，不要强行复刻主线；以玩家当前身份为中心生成新的可交互剧情，并保持世界规则一致。`,
     openingMessage: `你选择以《${title}》作为剧本参考。\n\n系统会围绕这部小说的世界气质生成一条新的半开放式故事线。你可以先观察环境、确认身份、接触人物，或者主动探索当前世界。`,
     themeId,
-    themeSource: 'novel-auto',
+    themeSource,
     player: { name: '玩家', realm: '凡人', sect: '未定', location: sceneName },
     initialSceneName: sceneName,
     scenes: {

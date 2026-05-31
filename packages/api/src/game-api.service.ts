@@ -2,6 +2,7 @@ import type { HostInventoryPinsPayload, HostMessagePayload, HostNovelSearchResul
 import type { OnModuleInit } from '@nestjs/common';
 import path from 'node:path';
 import { Injectable } from '@nestjs/common';
+import { createDefaultNovelApiSettings, normalizeNovelApiProvider } from '@xianxia-rpg/core';
 import type { AIChatRequest, AIProviderConfig } from './ai';
 import { chatWithAI } from './ai';
 import { createDefaultAIConfig } from './default-ai-config';
@@ -46,6 +47,14 @@ export class GameApiService implements OnModuleInit {
     return { success: true, data: this.database.listGameSaves() };
   }
 
+  async deleteGame(runId: string): Promise<{ success: boolean; message: string; runId?: string }> {
+    await this.database.init();
+    const deleted = this.database.deleteGame(runId);
+    if (!deleted)
+      return { success: false, message: '存档不存在或已删除' };
+    return { success: true, message: '存档已删除', runId };
+  }
+
   async saveDeathArchive(data: Record<string, unknown>): Promise<{ success: boolean; message: string; data: unknown; runId: string }> {
     await this.database.init();
     const record = this.database.saveDeathArchive(data);
@@ -66,9 +75,10 @@ export class GameApiService implements OnModuleInit {
   async searchNovels(payload: NovelSearchPayload): Promise<HostNovelSearchResult> {
     await this.database.init();
     const storedConfig = this.database.loadAIConfig();
-    const provider = storedConfig?.novelApiProvider;
-    if (provider === 'compatible' || provider === 'custom-functions' || provider === 'biquge-compatible' || provider === 'custom')
-      return searchRemoteNovels(storedConfig as NovelApiSettings, payload.keyword);
+    const novelApiSettings = { ...createDefaultNovelApiSettings(), ...storedConfig };
+    const provider = normalizeNovelApiProvider(novelApiSettings.novelApiProvider);
+    if (provider === 'compatible' || provider === 'custom-functions')
+      return searchRemoteNovels({ ...novelApiSettings, novelApiProvider: provider } as NovelApiSettings, payload.keyword);
 
     return { success: false, data: [], message: '小说 API 未启用，请先在设置中配置小说来源。' };
   }
@@ -107,7 +117,7 @@ export class GameApiService implements OnModuleInit {
   async loadAIConfig(): Promise<{ success: boolean; data: AIProviderConfig }> {
     await this.database.init();
     const storedConfig = this.database.loadAIConfig();
-    return { success: true, data: { ...this.aiConfig, ...storedConfig } };
+    return { success: true, data: { ...this.aiConfig, ...createDefaultNovelApiSettings(), ...storedConfig } };
   }
 
   async testAIConnection(testConfig: Record<string, unknown>): Promise<{ success: boolean; reply?: string; error?: string }> {

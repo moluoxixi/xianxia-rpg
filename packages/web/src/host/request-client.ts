@@ -4,6 +4,8 @@ import type {
   HostAIConfigResult,
   HostConnectionResult,
   HostDeathArchiveResult,
+  HostDeleteGamePayload,
+  HostDeleteGameResult,
   HostInventoryPinsLoadPayload,
   HostInventoryPinsPayload,
   HostInventoryPinsResult,
@@ -41,6 +43,10 @@ export function createRequestGameHostClient(): GameHostClient {
     listGameSaves: async () =>
       requestHost<HostGameSavesResult>('/game/saves', { method: 'GET' })
         .catch(error => ({ success: false, data: [], message: getErrorMessage(error) })),
+
+    deleteGameSave: async runId =>
+      requestHost<HostDeleteGameResult, HostDeleteGamePayload>('/game/delete', { method: 'POST', body: { runId } })
+        .catch(error => ({ success: false, message: getErrorMessage(error) })),
 
     loadInventoryPins: async runId =>
       requestHost<HostInventoryPinsResult, HostInventoryPinsLoadPayload>(
