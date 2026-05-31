@@ -12,7 +12,7 @@ COPY packages/web/package.json packages/web/package.json
 RUN pnpm install --frozen-lockfile
 
 COPY . .
-RUN pnpm run build
+RUN pnpm run build:model && pnpm run build:core && pnpm run build:api
 
 FROM node:22-alpine AS runtime
 
@@ -30,7 +30,7 @@ COPY packages/model/package.json packages/model/package.json
 COPY packages/web/package.json packages/web/package.json
 RUN pnpm install --prod --frozen-lockfile
 
-COPY --from=build /app/dist ./dist
+COPY --from=build /app/dist/api ./dist/api
 COPY --from=build /app/packages/core/dist ./packages/core/dist
 COPY --from=build /app/packages/model/dist ./packages/model/dist
 

@@ -23,6 +23,7 @@ export function StatusSidebar({
     <aside className="w-[320px] shrink-0 overflow-y-auto bg-[#14142e] p-4">
       <Card className="mb-4 p-3">
         <PanelTitle icon={<User className="h-4 w-4" />} title="角色状态" />
+        <InfoRow label="剧本" value={gameState.scenario.title} />
         <InfoRow label="姓名" value={gameState.character.name} />
         <InfoRow label="境界" value={gameState.character.realm} highlight />
         <InfoRow label="门派" value={gameState.character.sect} />

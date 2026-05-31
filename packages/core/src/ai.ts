@@ -16,7 +16,7 @@ export type AIProviderType = 'openai' | 'anthropic';
 export interface AIProviderConfig {
   /** 提供商类型 */
   type: AIProviderType;
-  /** API Base URL（可选，用于自定义端点） */
+  /** API Base URL：OpenAI 兼容接口通常包含 /v1，Anthropic 使用服务根地址。 */
   baseURL?: string;
   /** API Key */
   apiKey: string;

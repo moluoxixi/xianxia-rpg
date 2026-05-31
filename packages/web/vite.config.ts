@@ -11,6 +11,7 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, 'src'),
       '@xianxia-rpg/core': path.resolve(__dirname, '../core/index.ts'),
+      '@xianxia-rpg/model': path.resolve(__dirname, '../model/index.ts'),
     },
   },
   css: {

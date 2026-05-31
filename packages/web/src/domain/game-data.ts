@@ -1,7 +1,9 @@
 import type { Scene } from '@xianxia-rpg/core';
 import type { GameState } from './game-state';
-import type { ChatMessage, InventoryItem, InventoryViewItem, Role } from './types';
-import { INITIAL_SCENE, STARTER_SCENES } from '@xianxia-rpg/core';
+import type { ChatMessage, InventoryItem, InventoryViewItem, Role, Skill } from './types';
+import { STARTER_SCENES } from '@xianxia-rpg/core';
+import { createDefaultScenarioPack, normalizeScenarioPack } from './scenario';
+import type { ScenarioPack } from './scenario';
 
 export const pinnedItems = ['下品灵石', '黄龙丹', '长剑'];
 
@@ -186,24 +188,22 @@ export function createInventoryViewItems(items: InventoryItem[], pinnedKeys: str
 }
 
 export function createInitialGameState(): GameState {
+  return createGameStateFromScenario(createDefaultScenarioPack());
+}
+
+export function createGameStateFromScenario(scenario: ScenarioPack): GameState {
   return {
     runId: createRunId(),
-    character: { name: '韩立', realm: '炼气期一层', sect: '七玄门', location: INITIAL_SCENE.name },
-    stats: { hp: 100, maxHp: 100, mp: 80, maxMp: 100, exp: 10, maxExp: getRealmMaxExp('炼气期一层') },
-    inventory: [
-      { id: 'item_huanglongdan', name: '黄龙丹', count: 3, type: 'pill', rarity: 'low', usable: true, description: itemDescriptions.黄龙丹 },
-      { id: 'item_low_spirit_stone', name: '下品灵石', count: 50, type: 'spirit_stone', rarity: 'low', description: itemDescriptions.下品灵石 },
-      { id: 'item_iron_sword', name: '长剑', count: 1, type: 'weapon', rarity: 'common', usable: true, description: itemDescriptions.长剑 },
-    ],
-    skills: [
-      { id: 'skill_changchun', name: '长春功', level: '入门', type: 'main', proficiency: 0, source: '七玄门' },
-      { id: 'skill_basic_sword', name: '基础剑术', level: '熟练', type: 'combat', proficiency: 20, source: '七玄门' },
-    ],
+    scenario,
+    character: structuredClone(scenario.player),
+    stats: createInitialStats(scenario.player.realm),
+    inventory: createScenarioInventory(scenario),
+    skills: createScenarioSkills(scenario),
     chatHistory: [],
     difficulty: 'normal',
     isDead: false,
-    currentScene: INITIAL_SCENE.name,
-    scenes: createStarterScenes(),
+    currentScene: scenario.initialSceneName,
+    scenes: createScenarioScenes(scenario),
     npcs: {},
     defeatedNpcs: [],
   };
@@ -211,6 +211,10 @@ export function createInitialGameState(): GameState {
 
 export function cloneInitialState(): GameState {
   return createInitialGameState();
+}
+
+export function cloneScenarioInitialState(scenario: ScenarioPack): GameState {
+  return createGameStateFromScenario(scenario);
 }
 
 export function getDefaultQuickActions(gameState: GameState): string[] {
@@ -233,14 +237,6 @@ export function getDefaultQuickActions(gameState: GameState): string[] {
 
 export function mergeQuickActions(gameState: GameState, aiActions: string[]): string[] {
   return Array.from(new Set([...aiActions, ...getDefaultQuickActions(gameState)])).slice(0, 8);
-}
-
-function createStarterScenes(): Record<string, Scene> {
-  const scenes: Record<string, Scene> = {};
-  for (const [name, scene] of Object.entries(STARTER_SCENES)) {
-    scenes[name] = structuredClone(scene);
-  }
-  return scenes;
 }
 
 function getEffectiveScene(sceneName: string, scene: Scene | undefined): Scene | undefined {
@@ -266,10 +262,12 @@ export function normalizeLoadedGameState(data: unknown): GameState | null {
   if (!data || typeof data !== 'object')
     return null;
   const loaded = data as Partial<GameState>;
-  const fallback = createInitialGameState();
+  const scenario = normalizeScenarioPack(loaded.scenario) ?? createDefaultScenarioPack();
+  const fallback = createGameStateFromScenario(scenario);
   return {
     ...fallback,
     ...loaded,
+    scenario,
     runId: loaded.runId ?? fallback.runId,
     character: { ...fallback.character, ...loaded.character },
     stats: { ...fallback.stats, ...loaded.stats },
@@ -280,6 +278,49 @@ export function normalizeLoadedGameState(data: unknown): GameState | null {
     npcs: loaded.npcs ?? fallback.npcs,
     defeatedNpcs: Array.isArray(loaded.defeatedNpcs) ? loaded.defeatedNpcs : fallback.defeatedNpcs,
   };
+}
+
+function createInitialStats(realm: string): GameState['stats'] {
+  const realmLevel = getRealmLevel(realm);
+  return {
+    hp: Math.max(80, 80 + realmLevel * 20),
+    maxHp: Math.max(80, 80 + realmLevel * 20),
+    mp: Math.max(80, 80 + realmLevel * 24),
+    maxMp: Math.max(100, 80 + realmLevel * 24),
+    exp: realm === '凡人' ? 0 : 10,
+    maxExp: getRealmMaxExp(realm),
+  };
+}
+
+function createScenarioInventory(scenario: ScenarioPack): InventoryItem[] {
+  if (scenario.id === 'fanren-xiuxian') {
+    return [
+      { id: 'item_huanglongdan', name: '黄龙丹', count: 3, type: 'pill', rarity: 'low', usable: true, description: itemDescriptions.黄龙丹 },
+      { id: 'item_low_spirit_stone', name: '下品灵石', count: 50, type: 'spirit_stone', rarity: 'low', description: itemDescriptions.下品灵石 },
+      { id: 'item_iron_sword', name: '长剑', count: 1, type: 'weapon', rarity: 'common', usable: true, description: itemDescriptions.长剑 },
+    ];
+  }
+  return [
+    { id: 'item_travel_pack', name: '随身行囊', count: 1, type: 'misc', rarity: 'common', description: '进入新剧本时随身携带的基础物品。' },
+  ];
+}
+
+function createScenarioSkills(scenario: ScenarioPack): Skill[] {
+  if (scenario.id === 'fanren-xiuxian') {
+    return [
+      { id: 'skill_changchun', name: '长春功', level: '入门', type: 'main', proficiency: 0, source: '七玄门' },
+      { id: 'skill_basic_sword', name: '基础剑术', level: '熟练', type: 'combat', proficiency: 20, source: '七玄门' },
+    ];
+  }
+  return [];
+}
+
+function createScenarioScenes(scenario: ScenarioPack): Record<string, Scene> {
+  const scenes: Record<string, Scene> = {};
+  for (const [name, scene] of Object.entries(scenario.scenes)) {
+    scenes[name] = structuredClone(scene);
+  }
+  return scenes;
 }
 
 function mergeLoadedScenes(fallbackScenes: Record<string, Scene>, loadedScenes: unknown): Record<string, Scene> {

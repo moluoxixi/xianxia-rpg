@@ -1,3 +1,5 @@
+import type { HostNovelSearchResult } from './novel';
+
 export interface HostMessagePayload {
   message: string;
   history: Array<{ role: string; content: string }>;
@@ -101,7 +103,8 @@ export type HostRequestPath
     | '/game/saves'
     | '/game/death-archives'
     | '/game/inventory-pins'
-    | '/game/inventory-pins/load';
+    | '/game/inventory-pins/load'
+    | '/novels/search';
 
 export interface GameHostClient {
   /** AI 对话入口；网页端和 Electron 桌面壳都通过同名 HTTP API 实现。 */
@@ -128,4 +131,6 @@ export interface GameHostClient {
   testAIConnection: (config: HostSettingsPayload) => Promise<HostConnectionResult>;
   /** 保存死亡归档。 */
   saveDeathArchive: (data: unknown) => Promise<HostDeathArchiveResult>;
+  /** 搜索可用于生成剧本的参考小说。 */
+  searchNovels: (keyword: string) => Promise<HostNovelSearchResult>;
 }

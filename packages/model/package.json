@@ -1,0 +1,21 @@
+{
+  "name": "@xianxia-rpg/model",
+  "version": "0.1.0",
+  "description": "Reusable AI model provider catalog and endpoint helpers for xianxia-rpg.",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  }
+}

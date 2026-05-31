@@ -7,6 +7,7 @@
  */
 
 import type { AIAdapter, AIChatRequest, AIChatResponse, AIProviderConfig } from '@xianxia-rpg/core';
+import { buildAIProviderEndpointUrl } from '@xianxia-rpg/model';
 import { Buffer } from 'node:buffer';
 import http from 'node:http';
 import https from 'node:https';
@@ -15,8 +16,7 @@ export class AnthropicAdapter implements AIAdapter {
   readonly type = 'anthropic' as const;
 
   async chat(config: AIProviderConfig, request: AIChatRequest): Promise<AIChatResponse> {
-    const baseURL = config.baseURL ?? 'https://api.anthropic.com/v1';
-    const url = new URL(`${baseURL}/messages`);
+    const url = new URL(buildAIProviderEndpointUrl('anthropic', config.baseURL, 'chat'));
 
     // Anthropic 格式：system 是顶层参数，动态人物/场景状态需要合并到这里。
     const systemPrompt = [
@@ -53,7 +53,6 @@ export class AnthropicAdapter implements AIAdapter {
           'Content-Type': 'application/json',
           'x-api-key': config.apiKey,
           'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true',
         },
         body,
       });

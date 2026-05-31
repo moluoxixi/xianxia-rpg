@@ -1,5 +1,9 @@
+import type { AIProviderType } from '@xianxia-rpg/core';
+import type { AIModelCatalog } from '@xianxia-rpg/model';
+
 export type Role = 'user' | 'assistant' | 'system';
 export type Difficulty = 'normal' | 'hard';
+export type NovelApiProvider = 'disabled' | 'compatible' | 'custom-functions';
 
 export interface CharacterInfo {
   name: string;
@@ -58,11 +62,17 @@ export interface Choice {
 }
 
 export interface AIConfigForm {
-  type: string;
+  type: AIProviderType;
   baseURL: string;
   apiKey: string;
   model: string;
+  modelCatalog: AIModelCatalog;
   maxTokens: string;
   temperature: string;
   systemPrompt: string;
+  novelApiProvider: NovelApiProvider;
+  novelApiBaseURL: string;
+  novelApiKey: string;
+  novelApiBuildRequestCode: string;
+  novelApiMapResponseCode: string;
 }

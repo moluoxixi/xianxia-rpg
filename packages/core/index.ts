@@ -44,6 +44,11 @@ export type {
   HostSettingsPayload,
   HostSettingsResult,
 } from './src/host';
+export type {
+  HostNovelSearchResult,
+  NovelSearchPayload,
+  NovelSummary,
+} from './src/novel';
 export {
   INITIAL_SCENE,
   STARTER_SCENES,

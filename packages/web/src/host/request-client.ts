@@ -12,6 +12,8 @@ import type {
   HostLoadGameResult,
   HostMessagePayload,
   HostMessageResult,
+  HostNovelSearchResult,
+  NovelSearchPayload,
   HostSaveGameResult,
   HostSettingsPayload,
   HostSettingsResult,
@@ -70,6 +72,10 @@ export function createRequestGameHostClient(): GameHostClient {
     saveDeathArchive: async data =>
       requestHost<HostDeathArchiveResult>('/game/death-archives', { method: 'POST', body: data })
         .catch(error => ({ success: false, message: getErrorMessage(error) })),
+
+    searchNovels: async keyword =>
+      requestHost<HostNovelSearchResult, NovelSearchPayload>('/novels/search', { method: 'POST', body: { keyword } })
+        .catch(error => ({ success: false, data: [], message: getErrorMessage(error) })),
   };
 }
 

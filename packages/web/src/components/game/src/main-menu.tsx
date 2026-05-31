@@ -1,37 +1,75 @@
+import type { NovelSummary } from '@xianxia-rpg/core';
 import type { MainMenuProps } from './types';
-import { CirclePlay, Clock3, FolderOpen, Plus, RefreshCw, Settings } from 'lucide-react';
-import { Button, Card } from '@/components/ui';
+import type { FormEvent } from 'react';
+import { BookOpen, Clock3, FolderOpen, Plus, RefreshCw, Search, Settings } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Button, Card, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Input, Select } from '@/components/ui';
 
 export function MainMenu({
   saves,
+  novels,
   loading,
+  searchingNovels,
   message,
-  onContinue,
+  novelSearchMessage,
   onLoadSave,
   onNewGame,
   onOpenSettings,
   onRefreshSaves,
+  onSearchNovels,
 }: MainMenuProps) {
-  const latestSave = saves[0];
+  const [newGameOpen, setNewGameOpen] = useState(false);
+  const [loadSavesOpen, setLoadSavesOpen] = useState(false);
+  const [novelKeyword, setNovelKeyword] = useState('');
+  const [selectedNovelId, setSelectedNovelId] = useState(novels[0]?.id ?? '');
+  const selectedNovel = novels.find(novel => novel.id === selectedNovelId) ?? novels[0];
+
+  useEffect(() => {
+    if (newGameOpen)
+      void onSearchNovels('');
+  }, [newGameOpen, onSearchNovels]);
+
+  function searchNovel(event: FormEvent<HTMLFormElement>): void {
+    event.preventDefault();
+    void onSearchNovels(novelKeyword);
+  }
+
+  function startSelectedNovel(): void {
+    if (!selectedNovel)
+      return;
+
+    onNewGame(selectedNovel.title);
+    setNewGameOpen(false);
+  }
+
+  function openLoadSaves(): void {
+    setLoadSavesOpen(true);
+    void onRefreshSaves();
+  }
+
+  function loadSelectedSave(runId: string): void {
+    setLoadSavesOpen(false);
+    onLoadSave(runId);
+  }
 
   return (
-    <main className="grid min-h-screen gap-6 bg-background p-6 text-foreground lg:grid-cols-[360px_minmax(0,1fr)]">
-      <Card className="flex flex-col justify-between p-6">
+    <main className="flex min-h-screen items-center justify-center bg-background p-6 text-foreground">
+      <Card className="flex w-full max-w-[420px] flex-col justify-between p-6">
         <div className="space-y-6">
           <div className="space-y-2">
             <div className="text-sm font-medium text-muted-foreground">AI 修仙文字冒险</div>
-            <h1 className="text-3xl font-semibold tracking-normal">凡人修仙传</h1>
-            <p className="text-sm leading-6 text-muted-foreground">选择一个存档继续修行，或者从七玄门外门重新启程。</p>
+            <h1 className="text-3xl font-semibold tracking-normal">半开放式剧本 RPG</h1>
+            <p className="text-sm leading-6 text-muted-foreground">选择参考小说后开局，系统会自动生成初始身份、场景和剧本基调。</p>
           </div>
 
           <div className="space-y-3">
-            <Button className="w-full justify-start" disabled={!latestSave || loading} onClick={onContinue}>
-              <CirclePlay className="h-4 w-4" />
-              继续游戏
-            </Button>
-            <Button className="w-full justify-start" variant="secondary" onClick={onNewGame}>
+            <Button className="w-full justify-start" onClick={() => setNewGameOpen(true)}>
               <Plus className="h-4 w-4" />
               新开游戏
+            </Button>
+            <Button className="w-full justify-start" variant="secondary" onClick={openLoadSaves}>
+              <FolderOpen className="h-4 w-4" />
+              读取存档
             </Button>
             <Button className="w-full justify-start" variant="outline" onClick={onOpenSettings}>
               <Settings className="h-4 w-4" />
@@ -41,53 +79,98 @@ export function MainMenu({
         </div>
 
         <div className="rounded-md border border-border p-3 text-xs leading-5 text-muted-foreground">
-          当前存档会独立保存背包置顶、角色状态和场景进度。
+          当前存档会独立保存剧本、背包置顶、角色状态和场景进度。
         </div>
       </Card>
 
-      <Card className="min-h-0 p-6">
-        <div className="mb-5 flex items-center justify-between gap-3">
-          <div>
-            <h2 className="text-xl font-semibold tracking-normal">读取存档</h2>
-            <p className="text-sm text-muted-foreground">按更新时间排序，选择任意存档进入。</p>
+      <Dialog open={newGameOpen} onOpenChange={setNewGameOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>新开游戏</DialogTitle>
+            <DialogDescription className="sr-only">搜索并选择参考小说。</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 p-5">
+            <form className="flex gap-2" onSubmit={searchNovel}>
+              <Input value={novelKeyword} onChange={event => setNovelKeyword(event.target.value)} placeholder="搜索小说名或作者" />
+              <Button type="submit" size="icon" disabled={searchingNovels} aria-label="搜索小说">
+                <Search className="h-4 w-4" />
+              </Button>
+            </form>
+            <label className="space-y-1.5">
+              <span className="text-xs font-semibold text-muted-foreground">参考小说</span>
+              <Select value={selectedNovel?.id ?? ''} onChange={event => setSelectedNovelId(event.target.value)} disabled={novels.length === 0 || searchingNovels}>
+                {novels.map(novel => (
+                  <option key={novel.id} value={novel.id}>{formatNovelOption(novel)}</option>
+                ))}
+              </Select>
+            </label>
+            {novelSearchMessage ? <p className="rounded-sm border border-destructive/40 bg-destructive/10 px-2 py-1 text-xs leading-5 text-destructive">{novelSearchMessage}</p> : null}
+            <p className="min-h-10 text-xs leading-5 text-muted-foreground">
+              {selectedNovel ? `${selectedNovel.description} 来源：${selectedNovel.source}` : '暂无可用参考小说'}
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button variant="secondary" onClick={() => setNewGameOpen(false)}>取消</Button>
+              <Button disabled={!selectedNovel || searchingNovels} onClick={startSelectedNovel}>
+                <BookOpen className="h-4 w-4" />
+                新开游戏
+              </Button>
+            </div>
           </div>
-          <Button size="sm" variant="outline" onClick={onRefreshSaves}>
-            <RefreshCw className="h-4 w-4" />
-            刷新
-          </Button>
-        </div>
+        </DialogContent>
+      </Dialog>
 
-        {message ? <div className="mb-4 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{message}</div> : null}
+      <Dialog open={loadSavesOpen} onOpenChange={setLoadSavesOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>读取存档</DialogTitle>
+            <DialogDescription className="sr-only">按更新时间排序，选择任意存档进入。</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 p-5">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm text-muted-foreground">按更新时间排序，选择任意存档进入。</p>
+              <Button size="sm" variant="outline" onClick={onRefreshSaves}>
+                <RefreshCw className="h-4 w-4" />
+                刷新
+              </Button>
+            </div>
 
-        <div className="grid gap-3">
-          {saves.map(save => (
-            <button
-              key={save.runId}
-              type="button"
-              className="flex w-full items-center justify-between gap-4 rounded-md border border-border bg-card p-4 text-left transition-colors hover:border-primary/60 hover:bg-accent"
-              onClick={() => onLoadSave(save.runId)}
-            >
-              <div className="min-w-0 space-y-1">
-                <div className="flex items-center gap-2 text-sm font-semibold">
-                  <FolderOpen className="h-4 w-4 shrink-0 text-primary" />
-                  <span className="truncate">{save.playerName}</span>
-                  <span className="rounded-sm bg-secondary px-2 py-0.5 text-xs text-secondary-foreground">{save.realm}</span>
-                </div>
-                <div className="truncate text-sm text-muted-foreground">{save.currentScene}</div>
-              </div>
-              <div className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
-                <Clock3 className="h-3.5 w-3.5" />
-                {formatSaveTime(save.updatedAt)}
-              </div>
-            </button>
-          ))}
-        </div>
+            {message ? <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{message}</div> : null}
 
-        {!loading && saves.length === 0 ? <div className="rounded-md border border-dashed border-border p-8 text-center text-sm text-muted-foreground">暂无存档，可以先新开游戏。</div> : null}
-        {loading ? <div className="rounded-md border border-border p-8 text-center text-sm text-muted-foreground">正在读取存档...</div> : null}
-      </Card>
+            <div className="max-h-[46vh] space-y-3 overflow-y-auto pr-1">
+              {saves.map(save => (
+                <button
+                  key={save.runId}
+                  type="button"
+                  className="flex w-full items-center justify-between gap-4 rounded-md border border-border bg-card p-4 text-left transition-colors hover:border-primary/60 hover:bg-accent"
+                  onClick={() => loadSelectedSave(save.runId)}
+                >
+                  <div className="min-w-0 space-y-1">
+                    <div className="flex items-center gap-2 text-sm font-semibold">
+                      <FolderOpen className="h-4 w-4 shrink-0 text-primary" />
+                      <span className="truncate">{save.playerName}</span>
+                      <span className="rounded-sm bg-secondary px-2 py-0.5 text-xs text-secondary-foreground">{save.realm}</span>
+                    </div>
+                    <div className="truncate text-sm text-muted-foreground">{save.currentScene}</div>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
+                    <Clock3 className="h-3.5 w-3.5" />
+                    {formatSaveTime(save.updatedAt)}
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            {!loading && saves.length === 0 ? <div className="rounded-md border border-dashed border-border p-8 text-center text-sm text-muted-foreground">暂无存档，可以先新开游戏。</div> : null}
+            {loading ? <div className="rounded-md border border-border p-8 text-center text-sm text-muted-foreground">正在读取存档...</div> : null}
+          </div>
+        </DialogContent>
+      </Dialog>
     </main>
   );
+}
+
+function formatNovelOption(novel: NovelSummary): string {
+  return `${novel.title} / ${novel.author}`;
 }
 
 function formatSaveTime(value: string): string {

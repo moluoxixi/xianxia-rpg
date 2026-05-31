@@ -1,4 +1,4 @@
-import type { GameSaveSummary, NPC } from '@xianxia-rpg/core';
+import type { GameSaveSummary, NovelSummary, NPC } from '@xianxia-rpg/core';
 import type { ReactNode, RefObject } from 'react';
 import type { AIConfigForm, ChatMessage, Choice, Difficulty, GameState, InventoryItem } from '@/domain';
 
@@ -53,10 +53,8 @@ export interface MessageBubbleProps {
 export interface SettingsDialogProps {
   open: boolean;
   config: AIConfigForm;
-  difficulty: Difficulty;
   onOpenChange: (open: boolean) => void;
   onConfigChange: (config: AIConfigForm) => void;
-  onDifficultyChange: (difficulty: Difficulty) => void;
   onSave: () => void;
 }
 
@@ -92,11 +90,14 @@ export interface InventoryItemEntryProps {
 
 export interface MainMenuProps {
   saves: GameSaveSummary[];
+  novels: NovelSummary[];
   loading: boolean;
+  searchingNovels: boolean;
   message: string;
-  onContinue: () => void;
-  onNewGame: () => void;
+  novelSearchMessage: string;
+  onNewGame: (novelTitle: string) => void;
   onLoadSave: (runId: string) => void;
   onOpenSettings: () => void;
   onRefreshSaves: () => void;
+  onSearchNovels: (keyword: string) => Promise<void>;
 }

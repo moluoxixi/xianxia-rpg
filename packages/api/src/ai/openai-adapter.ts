@@ -13,6 +13,7 @@
  */
 
 import type { AIAdapter, AIChatRequest, AIChatResponse, AIProviderConfig } from '@xianxia-rpg/core';
+import { buildAIProviderEndpointUrl } from '@xianxia-rpg/model';
 import { Buffer } from 'node:buffer';
 import http from 'node:http';
 import https from 'node:https';
@@ -21,8 +22,7 @@ export class OpenAIAdapter implements AIAdapter {
   readonly type = 'openai' as const;
 
   async chat(config: AIProviderConfig, request: AIChatRequest): Promise<AIChatResponse> {
-    const baseURL = config.baseURL ?? 'https://api.openai.com/v1';
-    const url = new URL(`${baseURL}/chat/completions`);
+    const url = new URL(buildAIProviderEndpointUrl('openai', config.baseURL, 'chat'));
 
     // 构建消息列表
     const messages: Array<{ role: string; content: string }> = [];

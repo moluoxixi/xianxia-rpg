@@ -1,30 +1,32 @@
+import type { ReactNode } from 'react';
 import type { SettingsDialogProps } from './types';
-import { Button, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Input } from '@/components/ui';
+import { useState } from 'react';
+import { Button, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui';
+import { SettingsModelTab } from './settings-model-tab';
+import { SettingsNovelApiTab } from './settings-novel-api-tab';
 
-export function SettingsDialog({ open, config, difficulty, onOpenChange, onConfigChange, onDifficultyChange, onSave }: SettingsDialogProps) {
+type SettingsTab = 'model' | 'novel-api';
+
+export function SettingsDialog({ open, config, onOpenChange, onConfigChange, onSave }: SettingsDialogProps) {
+  const [activeTab, setActiveTab] = useState<SettingsTab>('model');
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>模型与游戏设置</DialogTitle>
-          <DialogDescription className="sr-only">配置 AI 模型连接和游戏难度。</DialogDescription>
+          <DialogTitle>设置</DialogTitle>
+          <DialogDescription className="sr-only">配置 AI 模型和小说接口。</DialogDescription>
         </DialogHeader>
         <div className="max-h-[72vh] space-y-4 overflow-y-auto p-5">
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="类型"><Input value={config.type} onChange={event => onConfigChange({ ...config, type: event.target.value })} /></Field>
-            <Field label="模型"><Input value={config.model} onChange={event => onConfigChange({ ...config, model: event.target.value })} /></Field>
-            <Field label="Base URL"><Input value={config.baseURL} onChange={event => onConfigChange({ ...config, baseURL: event.target.value })} /></Field>
-            <Field label="API Key"><Input value={config.apiKey} onChange={event => onConfigChange({ ...config, apiKey: event.target.value })} /></Field>
-            <Field label="Max Tokens"><Input value={config.maxTokens} onChange={event => onConfigChange({ ...config, maxTokens: event.target.value })} /></Field>
-            <Field label="Temperature"><Input value={config.temperature} onChange={event => onConfigChange({ ...config, temperature: event.target.value })} /></Field>
+          <div className="grid grid-cols-2 gap-2 rounded-md bg-muted p-1">
+            <TabButton active={activeTab === 'model'} onClick={() => setActiveTab('model')}>模型</TabButton>
+            <TabButton active={activeTab === 'novel-api'} onClick={() => setActiveTab('novel-api')}>小说 API</TabButton>
           </div>
-          <div className="flex items-center justify-between rounded-md border border-border p-3">
-            <span className="text-sm text-muted-foreground">难度模式</span>
-            <div className="flex gap-2">
-              <Button variant={difficulty === 'normal' ? 'default' : 'outline'} size="sm" onClick={() => onDifficultyChange('normal')}>简单</Button>
-              <Button variant={difficulty === 'hard' ? 'destructive' : 'outline'} size="sm" onClick={() => onDifficultyChange('hard')}>困难</Button>
-            </div>
-          </div>
+
+          {activeTab === 'model'
+            ? <SettingsModelTab config={config} onConfigChange={onConfigChange} />
+            : <SettingsNovelApiTab config={config} onConfigChange={onConfigChange} />}
+
           <div className="flex justify-end gap-2">
             <Button variant="secondary" onClick={() => onOpenChange(false)}>取消</Button>
             <Button onClick={onSave}>保存</Button>
@@ -35,11 +37,10 @@ export function SettingsDialog({ open, config, difficulty, onOpenChange, onConfi
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function TabButton({ active, children, onClick }: { active: boolean; children: ReactNode; onClick: () => void }) {
   return (
-    <label className="space-y-1.5">
-      <span className="text-xs font-semibold text-muted-foreground">{label}</span>
+    <Button type="button" variant={active ? 'default' : 'ghost'} size="sm" aria-selected={active} onClick={onClick}>
       {children}
-    </label>
+    </Button>
   );
 }

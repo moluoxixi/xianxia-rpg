@@ -9,7 +9,6 @@ export function App({ hostClient }: AppProps): ReactElement {
   const {
     activateInventoryItem,
     breakthroughRealm,
-    changeDifficulty,
     choices,
     config,
     dropInventoryItem,
@@ -19,10 +18,13 @@ export function App({ hostClient }: AppProps): ReactElement {
     input,
     inventoryOpen,
     isLoadingSaves,
+    isSearchingNovels,
     isSending,
     loadGameByRunId,
     loadGame,
     messages,
+    novels,
+    novelSearchMessage,
     openInventory,
     openSettings,
     pinnedInventoryKeys,
@@ -33,6 +35,7 @@ export function App({ hostClient }: AppProps): ReactElement {
     saveGame,
     saveListMessage,
     saveSettings,
+    searchNovels,
     sceneNpcs,
     selectInventoryItem,
     selectedInventoryKey,
@@ -66,13 +69,16 @@ export function App({ hostClient }: AppProps): ReactElement {
           saves={gameSaves}
           loading={isLoadingSaves}
           message={saveListMessage}
-          onContinue={() => enterGameAfter(loadGame)}
-          onNewGame={() => enterGameAfter(startNewGame)}
+          novels={novels}
+          novelSearchMessage={novelSearchMessage}
+          searchingNovels={isSearchingNovels}
+          onNewGame={novelTitle => enterGameAfter(() => startNewGame(novelTitle))}
           onLoadSave={runId => enterGameAfter(() => loadGameByRunId(runId))}
           onOpenSettings={openSettings}
           onRefreshSaves={() => void refreshGameSaves()}
+          onSearchNovels={searchNovels}
         />
-        <SettingsDialog open={settingsOpen} config={config} difficulty={gameState.difficulty} onOpenChange={setSettingsOpen} onConfigChange={setConfig} onDifficultyChange={changeDifficulty} onSave={saveSettings} />
+        <SettingsDialog open={settingsOpen} config={config} onOpenChange={setSettingsOpen} onConfigChange={setConfig} onSave={saveSettings} />
       </div>
     );
   }
@@ -84,7 +90,7 @@ export function App({ hostClient }: AppProps): ReactElement {
         <ChatPanel messages={messages} viewportRef={viewportRef} characterName={gameState.character.name} choices={choices} quickActions={quickActions} input={input} isSending={isSending} onInputChange={setInput} onSend={sendAction} />
         <StatusSidebar gameState={gameState} sceneNpcs={sceneNpcs} selectedInventoryKey={selectedInventoryKey} pinnedInventoryKeys={pinnedInventoryKeys} onOpenInventory={openInventory} onSelectInventoryItem={selectInventoryItem} onUseInventoryItem={activateInventoryItem} onDropInventoryItem={dropInventoryItem} onToggleInventoryPin={toggleInventoryPin} />
       </main>
-      <SettingsDialog open={settingsOpen} config={config} difficulty={gameState.difficulty} onOpenChange={setSettingsOpen} onConfigChange={setConfig} onDifficultyChange={changeDifficulty} onSave={saveSettings} />
+      <SettingsDialog open={settingsOpen} config={config} onOpenChange={setSettingsOpen} onConfigChange={setConfig} onSave={saveSettings} />
       <InventoryDialog open={inventoryOpen} items={gameState.inventory} selectedInventoryKey={selectedInventoryKey} pinnedInventoryKeys={pinnedInventoryKeys} onOpenChange={setInventoryOpen} onSelectItem={selectInventoryItem} onUseItem={activateInventoryItem} onDropItem={dropInventoryItem} onTogglePin={toggleInventoryPin} />
       {gameState.isDead ? <DeathOverlay hard={gameState.difficulty === 'hard'} canRevive={hasReviveStone} onRevive={revivePlayer} onRestart={resetGame} /> : null}
       <BreakthroughOverlay realm={breakthroughRealm} />

@@ -1,8 +1,10 @@
 import type { NPC, Scene } from '@xianxia-rpg/core';
+import type { ScenarioPack } from './scenario';
 import type { CharacterInfo, CharacterStats, Difficulty, InventoryItem, Skill } from './types';
 
 export interface GameState {
   runId: string;
+  scenario: ScenarioPack;
   character: CharacterInfo;
   stats: CharacterStats;
   inventory: InventoryItem[];

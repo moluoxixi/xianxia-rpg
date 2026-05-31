@@ -1,16 +1,24 @@
-import type { GameHostClient, GameSaveSummary, NPC } from '@xianxia-rpg/core';
+import type { GameHostClient, GameSaveSummary, NovelSummary, NPC } from '@xianxia-rpg/core';
+import type { AIModelCatalog } from '@xianxia-rpg/model';
 import type { GameSessionController } from './types';
 import type { AIConfigForm, AppliedEvent, ApplyResourceResult, ChatMessage, Choice, Difficulty, GameState, InventoryItem, Role } from '@/domain';
 import { INITIAL_SCENE } from '@xianxia-rpg/core';
+import { createDefaultModelCatalog, createDefaultModelSettings } from '@xianxia-rpg/model';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   applyResourceChanges,
+  availableNovelScenarios,
   buildPlayerStatus,
+  cloneScenarioInitialState,
   cloneInitialState,
   createMessage,
+  createScenarioFromNovelTitle,
+  defaultNovelApiBuildRequestCode,
+  defaultNovelApiMapResponseCode,
   getDefaultQuickActions,
   getInventoryItemKey,
   mergeQuickActions,
+  normalizeNovelApiProvider,
   normalizeLoadedGameState,
   pinnedItems,
   parseChoices,
@@ -29,14 +37,22 @@ const welcomeMessage: ChatMessage = {
   content: '欢迎来到修仙世界！你是一个出身贫寒的凡人，偶然间踏入修仙之门。\n\n当前你身处七玄门外门弟子居所，修为尚在炼气期一层。\n\n你可以选择与周围的人交谈、探索门派、修炼功法，或者外出历练。',
 };
 
+const defaultModelSettings = createDefaultModelSettings('openai');
+
 const defaultConfig: AIConfigForm = {
-  type: 'openai',
-  baseURL: '',
+  type: defaultModelSettings.type,
+  baseURL: defaultModelSettings.baseURL,
   apiKey: '',
-  model: '',
-  maxTokens: '2048',
-  temperature: '0.7',
+  model: defaultModelSettings.model,
+  modelCatalog: defaultModelSettings.modelCatalog,
+  maxTokens: String(defaultModelSettings.maxTokens),
+  temperature: String(defaultModelSettings.temperature),
   systemPrompt: '',
+  novelApiProvider: 'disabled',
+  novelApiBaseURL: '',
+  novelApiKey: '',
+  novelApiBuildRequestCode: defaultNovelApiBuildRequestCode,
+  novelApiMapResponseCode: defaultNovelApiMapResponseCode,
 };
 
 function findLastAssistantMessage(messages: ChatMessage[]): ChatMessage | undefined {
@@ -57,8 +73,11 @@ export function useGameSession(client?: GameHostClient): GameSessionController {
   const [choices, setChoices] = useState<Choice[]>([]);
   const [isSending, setIsSending] = useState(false);
   const [gameSaves, setGameSaves] = useState<GameSaveSummary[]>([]);
+  const [novels, setNovels] = useState<NovelSummary[]>([]);
   const [isLoadingSaves, setIsLoadingSaves] = useState(false);
+  const [isSearchingNovels, setIsSearchingNovels] = useState(false);
   const [saveListMessage, setSaveListMessage] = useState('');
+  const [novelSearchMessage, setNovelSearchMessage] = useState('');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [inventoryOpen, setInventoryOpen] = useState(false);
   const [selectedInventoryKey, setSelectedInventoryKey] = useState<string | null>(null);
@@ -101,6 +120,24 @@ export function useGameSession(client?: GameHostClient): GameSessionController {
   useEffect(() => {
     void refreshGameSaves();
   }, [refreshGameSaves]);
+
+  const searchNovels = useCallback(async (keyword: string): Promise<void> => {
+    setIsSearchingNovels(true);
+    setNovelSearchMessage('');
+    try {
+      const result = await hostClient.searchNovels(keyword);
+      if (result.success) {
+        setNovels(result.data);
+        setNovelSearchMessage(result.message ?? '');
+        return;
+      }
+      setNovels([]);
+      setNovelSearchMessage(result.message ?? '小说搜索失败');
+    }
+    finally {
+      setIsSearchingNovels(false);
+    }
+  }, [hostClient]);
 
   function pushMessage(role: Role, content: string): void {
     setMessages(current => [...current, createMessage(role, content)]);
@@ -269,21 +306,27 @@ export function useGameSession(client?: GameHostClient): GameSessionController {
     if (result.success && result.data && typeof result.data === 'object') {
       const loaded = result.data as Record<string, unknown>;
       setConfig({
-        type: String(loaded.type ?? 'openai'),
+        type: (loaded.type ?? 'openai') as AIConfigForm['type'],
         baseURL: String(loaded.baseURL ?? ''),
         apiKey: String(loaded.apiKey ?? ''),
         model: String(loaded.model ?? ''),
+        modelCatalog: createDefaultModelCatalog(loaded.modelCatalog as Partial<AIModelCatalog>),
         maxTokens: String(loaded.maxTokens ?? 2048),
         temperature: String(loaded.temperature ?? 0.7),
         systemPrompt: String(loaded.systemPrompt ?? ''),
+        novelApiProvider: normalizeNovelApiProvider(loaded.novelApiProvider),
+        novelApiBaseURL: String(loaded.novelApiBaseURL ?? ''),
+        novelApiKey: String(loaded.novelApiKey ?? ''),
+        novelApiBuildRequestCode: String(loaded.novelApiBuildRequestCode ?? defaultNovelApiBuildRequestCode),
+        novelApiMapResponseCode: String(loaded.novelApiMapResponseCode ?? defaultNovelApiMapResponseCode),
       });
     }
     setSettingsOpen(true);
   }
 
   async function saveSettings(): Promise<void> {
-    const { type, baseURL, apiKey, model, maxTokens, temperature } = config;
-    await hostClient.saveAIConfig({ type, baseURL, apiKey, model, maxTokens: Number(maxTokens), temperature: Number(temperature) });
+    const { type, baseURL, apiKey, model, modelCatalog, maxTokens, temperature, novelApiProvider, novelApiBaseURL, novelApiKey, novelApiBuildRequestCode, novelApiMapResponseCode } = config;
+    await hostClient.saveAIConfig({ type, baseURL, apiKey, model, modelCatalog, maxTokens: Number(maxTokens), temperature: Number(temperature), novelApiProvider, novelApiBaseURL, novelApiKey, novelApiBuildRequestCode, novelApiMapResponseCode });
     pushMessage('system', '模型配置已保存并生效。');
     setSettingsOpen(false);
   }
@@ -317,12 +360,13 @@ export function useGameSession(client?: GameHostClient): GameSessionController {
     return applyLoadedGame(result.data, '读档成功。');
   }
 
-  async function startNewGame(): Promise<boolean> {
-    const nextState = cloneInitialState();
+  async function startNewGame(novelTitle = availableNovelScenarios[0].referenceNovel, difficulty: Difficulty = 'normal'): Promise<boolean> {
+    const nextState = cloneScenarioInitialState(createScenarioFromNovelTitle(novelTitle));
+    nextState.difficulty = difficulty;
     const nextPinnedKeys = [...pinnedItems];
     setGameState(nextState);
     setPinnedInventoryKeys(nextPinnedKeys);
-    setMessages([createMessage('system', welcomeMessage.content)]);
+    setMessages([createMessage('system', nextState.scenario.openingMessage)]);
     setQuickActions(getDefaultQuickActions(nextState));
     setChoices([]);
     setSelectedInventoryKey(null);
@@ -332,7 +376,7 @@ export function useGameSession(client?: GameHostClient): GameSessionController {
   }
 
   function resetGame(): void {
-    void startNewGame().catch(error => reportAsyncError('重开存档', error));
+    void startNewGame(gameState.scenario.referenceNovel, gameState.difficulty).catch(error => reportAsyncError('重开存档', error));
   }
 
   function revivePlayer(): void {
@@ -369,14 +413,6 @@ export function useGameSession(client?: GameHostClient): GameSessionController {
     }
   }
 
-  function changeDifficulty(difficulty: Difficulty): void {
-    setGameState((current) => {
-      const next = { ...current, difficulty };
-      void persistGame(next).catch(error => reportAsyncError('难度存档', error));
-      return next;
-    });
-  }
-
   const hasReviveStone = gameState.inventory.some(item => item.name === '下品灵石' && item.count >= 20);
 
   return {
@@ -396,8 +432,11 @@ export function useGameSession(client?: GameHostClient): GameSessionController {
     config,
     viewportRef,
     gameSaves,
+    novels,
     sceneNpcs,
     hasReviveStone,
+    isSearchingNovels,
+    novelSearchMessage,
     setInput,
     setSettingsOpen,
     setInventoryOpen,
@@ -411,12 +450,12 @@ export function useGameSession(client?: GameHostClient): GameSessionController {
     openSettings,
     saveSettings,
     refreshGameSaves,
+    searchNovels,
     saveGame,
     loadGame,
     loadGameByRunId,
     startNewGame,
     resetGame,
     revivePlayer,
-    changeDifficulty,
   };
 }

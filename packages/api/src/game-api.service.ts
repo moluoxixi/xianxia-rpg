@@ -1,4 +1,4 @@
-import type { HostInventoryPinsPayload, HostMessagePayload, HostSettingsPayload } from '@xianxia-rpg/core';
+import type { HostInventoryPinsPayload, HostMessagePayload, HostNovelSearchResult, HostSettingsPayload, NovelSearchPayload } from '@xianxia-rpg/core';
 import type { OnModuleInit } from '@nestjs/common';
 import path from 'node:path';
 import { Injectable } from '@nestjs/common';
@@ -6,6 +6,8 @@ import type { AIChatRequest, AIProviderConfig } from './ai';
 import { chatWithAI } from './ai';
 import { createDefaultAIConfig } from './default-ai-config';
 import { GameDatabase } from './infrastructure/database';
+import { searchRemoteNovels } from './novel-search';
+import type { NovelApiSettings } from './novel-search';
 
 @Injectable()
 export class GameApiService implements OnModuleInit {
@@ -59,6 +61,16 @@ export class GameApiService implements OnModuleInit {
   async loadInventoryPins(runId: string): Promise<{ success: boolean; data: string[] }> {
     await this.database.init();
     return { success: true, data: this.database.loadInventoryPins(runId) };
+  }
+
+  async searchNovels(payload: NovelSearchPayload): Promise<HostNovelSearchResult> {
+    await this.database.init();
+    const storedConfig = this.database.loadAIConfig();
+    const provider = storedConfig?.novelApiProvider;
+    if (provider === 'compatible' || provider === 'custom-functions' || provider === 'biquge-compatible' || provider === 'custom')
+      return searchRemoteNovels(storedConfig as NovelApiSettings, payload.keyword);
+
+    return { success: false, data: [], message: '小说 API 未启用，请先在设置中配置小说来源。' };
   }
 
   async sendMessage(payload: HostMessagePayload): Promise<{ success: boolean; reply: string; error?: string }> {
