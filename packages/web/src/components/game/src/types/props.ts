@@ -1,13 +1,15 @@
 import type { GameSaveSummary, NovelSummary, NPC } from '@xianxia-rpg/core';
 import type { ReactNode, RefObject } from 'react';
-import type { AIConfigForm, ChatMessage, Choice, Difficulty, GameState, GameThemeId, GameThemeSource, InventoryItem } from '@/domain';
+import type { AIConfigForm, ChatMessage, Choice, Difficulty, GameState, GameThemeId, GameThemeSource, GameTypeId, InventoryItem } from '@/domain';
 
 export interface AppHeaderProps {
   difficulty: Difficulty;
+  themeId: GameThemeId;
   onOpenMenu: () => void;
   onOpenSettings: () => void;
   onSave: () => void;
   onLoad: () => void;
+  onThemeChange: (themeId: GameThemeId) => void;
 }
 
 export interface BreakthroughOverlayProps {
@@ -98,8 +100,7 @@ export interface MainMenuProps {
   message: string;
   novelSearchMessage: string;
   activeThemeId: GameThemeId;
-  onPreviewThemeChange: (themeId: GameThemeId) => void;
-  onNewGame: (novelTitle: string, themeId: GameThemeId, themeSource: GameThemeSource) => void;
+  onNewGame: (novelTitle: string, themeId: GameThemeId, themeSource: GameThemeSource, gameTypeId: GameTypeId) => void;
   onContinueGame: () => void;
   onDeleteSave: (runId: string) => Promise<boolean>;
   onLoadSave: (runId: string) => void;

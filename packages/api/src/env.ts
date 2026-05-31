@@ -31,6 +31,13 @@ export function createDefaultProviderApiKeys(): Record<AIProviderType, string> {
   };
 }
 
+export function createDefaultProviderBaseURLs(fallbacks: Record<AIProviderType, string>): Record<AIProviderType, string> {
+  return {
+    openai: process.env.XIANXIA_OPENAI_BASE_URL ?? process.env.OPENAI_BASE_URL ?? fallbacks.openai,
+    anthropic: process.env.XIANXIA_ANTHROPIC_BASE_URL ?? process.env.ANTHROPIC_BASE_URL ?? fallbacks.anthropic,
+  };
+}
+
 function createRuntimeEnvPaths(): string[] {
   const candidateRoots = [
     process.cwd(),

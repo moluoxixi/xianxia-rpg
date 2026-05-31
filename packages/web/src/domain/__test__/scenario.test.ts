@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { availableNovelScenarios, createRecommendedNovelSummaries, mergeNovelSummaries, normalizeScenarioPack } from '../scenario';
+import { cloneScenarioInitialState } from '../game-data';
+import { buildPlayerStatus } from '../game-engine';
+import { availableNovelScenarios, createRecommendedNovelSummaries, createScenarioFromNovelTitle, mergeNovelSummaries, normalizeScenarioPack } from '../scenario';
 
 describe('recommended novel summaries', () => {
   it('exposes multiple starter candidates for the searchable novel selector', () => {
@@ -39,6 +41,18 @@ describe('scenario normalization', () => {
       scenes: {},
     });
 
+    expect(normalized?.gameTypeId).toBe('suspense');
     expect(normalized?.themeId).toBe('suspense');
+  });
+
+  it('keeps UI theme separate from the game type used in AI context', () => {
+    const scenario = createScenarioFromNovelTitle('诡秘之主', 'otome', 'user-override', 'suspense');
+    const state = cloneScenarioInitialState(scenario);
+    const status = buildPlayerStatus(state);
+
+    expect(state.themeId).toBe('otome');
+    expect(state.gameTypeId).toBe('suspense');
+    expect(status).toContain('题材:悬疑/灵异/神秘学');
+    expect(status).not.toContain('题材:乙女');
   });
 });

@@ -1,6 +1,6 @@
 import type { GameSaveSummary, NovelSummary, NPC } from '@xianxia-rpg/core';
 import type { Dispatch, RefObject, SetStateAction } from 'react';
-import type { AIConfigForm, ChatMessage, Choice, Difficulty, GameState, GameThemeId, GameThemeSource, InventoryItem } from '@/domain';
+import type { AIConfigForm, ChatMessage, Choice, Difficulty, GameState, GameThemeId, GameThemeSource, GameTypeId, InventoryItem } from '@/domain';
 
 export interface GameSessionController {
   gameState: GameState;
@@ -42,7 +42,8 @@ export interface GameSessionController {
   loadGame: () => Promise<boolean>;
   loadGameByRunId: (runId: string) => Promise<boolean>;
   deleteGameSave: (runId: string) => Promise<boolean>;
-  startNewGame: (novelTitle?: string, difficulty?: Difficulty, themeId?: GameThemeId, themeSource?: GameThemeSource) => Promise<boolean>;
+  startNewGame: (novelTitle?: string, difficulty?: Difficulty, themeId?: GameThemeId, themeSource?: GameThemeSource, gameTypeId?: GameTypeId) => Promise<boolean>;
+  changeGameTheme: (themeId: GameThemeId) => void;
   resetGame: () => void;
   revivePlayer: () => void;
 }

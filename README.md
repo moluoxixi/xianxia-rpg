@@ -43,6 +43,16 @@ packages/
 - `pnpm run typecheck`：检查 model、core、Web、Nest API 和 Electron 侧 TypeScript。
 - `pnpm run lint`：执行 ESLint。
 
+## 环境变量
+
+服务端会读取根目录 `.env.local` 和 `.env`，用于给设置页提供默认模型配置；这些值只在 Nest API 侧加载，不会打进 Web bundle。可参考 `.env.example`：
+
+- `XIANXIA_OPENAI_API_KEY`：OpenAI 兼容接口默认 API Key。
+- `XIANXIA_OPENAI_BASE_URL`：OpenAI 兼容接口默认请求地址，当前本地默认配置为 `https://coderelay.cn/v1`。
+- `XIANXIA_ANTHROPIC_API_KEY`：Anthropic Claude 默认 API Key。
+- `XIANXIA_ANTHROPIC_BASE_URL`：Anthropic Claude 默认请求地址，当前本地默认配置为 `https://coderelay.cn`。
+- `XIANXIA_DATA_DIR`：Nest API 的 SQLite 数据目录，默认写入项目根目录下的 `data`。
+
 ## Docker 快速部署
 
 ```bash

@@ -1,23 +1,30 @@
 import type { AIProviderConfig, AIProviderType } from './ai';
 import { createDefaultModelSettings } from '@xianxia-rpg/model';
-import { createDefaultProviderApiKeys, loadRuntimeEnv } from './env';
+import { createDefaultProviderApiKeys, createDefaultProviderBaseURLs, loadRuntimeEnv } from './env';
 
 loadRuntimeEnv();
 
 export interface RuntimeAIConfig extends AIProviderConfig {
   /** Per-provider defaults come from server-side environment variables and follow provider switching in the UI. */
   providerApiKeys: Record<AIProviderType, string>;
+  /** Per-provider base URLs are kept separate because OpenAI-compatible and Anthropic endpoints use different roots. */
+  providerBaseURLs: Record<AIProviderType, string>;
 }
 
 const defaultModelSettings = createDefaultModelSettings('openai');
+const defaultProviderBaseURLs = createDefaultProviderBaseURLs({
+  openai: createDefaultModelSettings('openai').baseURL,
+  anthropic: createDefaultModelSettings('anthropic').baseURL,
+});
 const defaultProviderApiKeys = createDefaultProviderApiKeys();
 
 export const defaultAIConfig: RuntimeAIConfig = {
   type: 'openai',
-  baseURL: defaultModelSettings.baseURL,
+  baseURL: defaultProviderBaseURLs.openai,
   apiKey: defaultProviderApiKeys.openai,
   model: defaultModelSettings.model,
   providerApiKeys: defaultProviderApiKeys,
+  providerBaseURLs: defaultProviderBaseURLs,
   maxTokens: defaultModelSettings.maxTokens,
   temperature: defaultModelSettings.temperature,
   systemPrompt: `你是一个半开放式文字 RPG 的 AI 叙事者和游戏主持人。
@@ -38,5 +45,5 @@ export const defaultAIConfig: RuntimeAIConfig = {
 };
 
 export function createDefaultAIConfig(): RuntimeAIConfig {
-  return { ...defaultAIConfig, providerApiKeys: { ...defaultAIConfig.providerApiKeys } };
+  return { ...defaultAIConfig, providerApiKeys: { ...defaultAIConfig.providerApiKeys }, providerBaseURLs: { ...defaultAIConfig.providerBaseURLs } };
 }

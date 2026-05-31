@@ -1,7 +1,7 @@
 import type { GameHostClient, GameSaveSummary, NovelSummary, NPC } from '@xianxia-rpg/core';
 import type { AIModelCatalog } from '@xianxia-rpg/model';
 import type { GameSessionController } from './types';
-import type { AIConfigForm, AppliedEvent, ApplyResourceResult, ChatMessage, Choice, Difficulty, GameState, GameThemeId, GameThemeSource, InventoryItem, Role } from '@/domain';
+import type { AIConfigForm, AppliedEvent, ApplyResourceResult, ChatMessage, Choice, Difficulty, GameState, GameThemeId, GameThemeSource, GameTypeId, InventoryItem, Role } from '@/domain';
 import { INITIAL_SCENE } from '@xianxia-rpg/core';
 import { createDefaultModelCatalog, createDefaultModelSettings } from '@xianxia-rpg/model';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -22,6 +22,7 @@ import {
   getDefaultQuickActions,
   getInventoryItemKey,
   inferThemeIdFromNovel,
+  inferGameTypeFromNovel,
   mergeNovelSummaries,
   mergeQuickActions,
   normalizeNovelApiProvider,
@@ -44,6 +45,10 @@ const welcomeMessage: ChatMessage = {
 };
 
 const defaultModelSettings = createDefaultModelSettings('openai');
+const defaultProviderBaseURLs = {
+  openai: createDefaultModelSettings('openai').baseURL,
+  anthropic: createDefaultModelSettings('anthropic').baseURL,
+};
 
 const defaultConfig: AIConfigForm = {
   type: defaultModelSettings.type,
@@ -53,6 +58,7 @@ const defaultConfig: AIConfigForm = {
     openai: '',
     anthropic: '',
   },
+  providerBaseURLs: defaultProviderBaseURLs,
   model: defaultModelSettings.model,
   modelCatalog: defaultModelSettings.modelCatalog,
   maxTokens: String(defaultModelSettings.maxTokens),
@@ -333,13 +339,20 @@ export function useGameSession(client?: GameHostClient): GameSessionController {
         ...defaultConfig.providerApiKeys,
         ...(loaded.providerApiKeys as Partial<AIConfigForm['providerApiKeys']> | undefined),
       };
+      const providerBaseURLs = {
+        ...defaultConfig.providerBaseURLs,
+        ...(loaded.providerBaseURLs as Partial<AIConfigForm['providerBaseURLs']> | undefined),
+      };
       const apiKey = String(loaded.apiKey ?? providerApiKeys[type] ?? '');
+      const baseURL = String(loaded.baseURL ?? providerBaseURLs[type] ?? '');
       providerApiKeys[type] = apiKey;
+      providerBaseURLs[type] = baseURL;
       setConfig({
         type,
-        baseURL: String(loaded.baseURL ?? ''),
+        baseURL,
         apiKey,
         providerApiKeys,
+        providerBaseURLs,
         model: String(loaded.model ?? ''),
         modelCatalog: createDefaultModelCatalog(loaded.modelCatalog as Partial<AIModelCatalog>),
         maxTokens: String(loaded.maxTokens ?? 2048),
@@ -356,9 +369,10 @@ export function useGameSession(client?: GameHostClient): GameSessionController {
   }
 
   async function saveSettings(): Promise<void> {
-    const { type, baseURL, apiKey, providerApiKeys, model, modelCatalog, maxTokens, temperature, novelApiProvider, novelApiBaseURL, novelApiKey, novelApiBuildRequestCode, novelApiMapResponseCode } = config;
+    const { type, baseURL, apiKey, providerApiKeys, providerBaseURLs, model, modelCatalog, maxTokens, temperature, novelApiProvider, novelApiBaseURL, novelApiKey, novelApiBuildRequestCode, novelApiMapResponseCode } = config;
     const nextProviderApiKeys = { ...providerApiKeys, [type]: apiKey };
-    await hostClient.saveAIConfig({ type, baseURL, apiKey, providerApiKeys: nextProviderApiKeys, model, modelCatalog, maxTokens: Number(maxTokens), temperature: Number(temperature), novelApiProvider, novelApiBaseURL, novelApiKey, novelApiBuildRequestCode, novelApiMapResponseCode });
+    const nextProviderBaseURLs = { ...providerBaseURLs, [type]: baseURL };
+    await hostClient.saveAIConfig({ type, baseURL, apiKey, providerApiKeys: nextProviderApiKeys, providerBaseURLs: nextProviderBaseURLs, model, modelCatalog, maxTokens: Number(maxTokens), temperature: Number(temperature), novelApiProvider, novelApiBaseURL, novelApiKey, novelApiBuildRequestCode, novelApiMapResponseCode });
     pushMessage('system', '模型配置已保存并生效。');
     setSettingsOpen(false);
   }
@@ -406,8 +420,8 @@ export function useGameSession(client?: GameHostClient): GameSessionController {
     return true;
   }
 
-  async function startNewGame(novelTitle = availableNovelScenarios[0].referenceNovel, difficulty: Difficulty = 'normal', themeId: GameThemeId = inferThemeIdFromNovel(novelTitle), themeSource: GameThemeSource = 'novel-auto'): Promise<boolean> {
-    const nextState = cloneScenarioInitialState(createScenarioFromNovelTitle(novelTitle, themeId, themeSource));
+  async function startNewGame(novelTitle = availableNovelScenarios[0].referenceNovel, difficulty: Difficulty = 'normal', themeId: GameThemeId = inferThemeIdFromNovel(novelTitle), themeSource: GameThemeSource = 'novel-auto', gameTypeId: GameTypeId = inferGameTypeFromNovel(novelTitle)): Promise<boolean> {
+    const nextState = cloneScenarioInitialState(createScenarioFromNovelTitle(novelTitle, themeId, themeSource, gameTypeId));
     nextState.difficulty = difficulty;
     const nextPinnedKeys = [...pinnedItems];
     setGameState(nextState);
@@ -421,8 +435,19 @@ export function useGameSession(client?: GameHostClient): GameSessionController {
     return true;
   }
 
+  function changeGameTheme(themeId: GameThemeId): void {
+    setGameState((current) => {
+      const next = structuredClone(current);
+      next.themeId = themeId;
+      next.themeSource = 'user-override';
+      next.scenario = { ...next.scenario, themeId, themeSource: 'user-override' };
+      void persistGame(next).then(refreshGameSaves).catch(error => reportAsyncError('主题保存', error));
+      return next;
+    });
+  }
+
   function resetGame(): void {
-    void startNewGame(gameState.scenario.referenceNovel, gameState.difficulty, gameState.themeId, gameState.themeSource).catch(error => reportAsyncError('重开存档', error));
+    void startNewGame(gameState.scenario.referenceNovel, gameState.difficulty, gameState.themeId, gameState.themeSource, gameState.gameTypeId).catch(error => reportAsyncError('重开存档', error));
   }
 
   function revivePlayer(): void {
@@ -502,6 +527,7 @@ export function useGameSession(client?: GameHostClient): GameSessionController {
     loadGameByRunId,
     deleteGameSave,
     startNewGame,
+    changeGameTheme,
     resetGame,
     revivePlayer,
   };

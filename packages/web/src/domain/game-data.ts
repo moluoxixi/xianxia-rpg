@@ -2,6 +2,7 @@ import type { Scene } from '@xianxia-rpg/core';
 import type { GameState } from './game-state';
 import type { ChatMessage, InventoryItem, InventoryViewItem, Role, Skill } from './types';
 import { STARTER_SCENES } from '@xianxia-rpg/core';
+import { normalizeGameTypeId } from './game-type';
 import { createDefaultScenarioPack, normalizeScenarioPack } from './scenario';
 import type { ScenarioPack } from './scenario';
 import { normalizeThemeId, normalizeThemeSource } from './theme';
@@ -202,6 +203,7 @@ export function createGameStateFromScenario(scenario: ScenarioPack): GameState {
     skills: createScenarioSkills(scenario),
     chatHistory: [],
     difficulty: 'normal',
+    gameTypeId: scenario.gameTypeId,
     themeId: scenario.themeId,
     themeSource: scenario.themeSource,
     isDead: false,
@@ -277,6 +279,7 @@ export function normalizeLoadedGameState(data: unknown): GameState | null {
     inventory: Array.isArray(loaded.inventory) ? loaded.inventory : fallback.inventory,
     skills: Array.isArray(loaded.skills) ? loaded.skills : fallback.skills,
     chatHistory: Array.isArray(loaded.chatHistory) ? loaded.chatHistory : fallback.chatHistory,
+    gameTypeId: normalizeGameTypeId(loaded.gameTypeId ?? scenario.gameTypeId),
     themeId: normalizeThemeId(loaded.themeId ?? scenario.themeId),
     themeSource: normalizeThemeSource(loaded.themeSource ?? scenario.themeSource),
     scenes: mergeLoadedScenes(fallback.scenes, loaded.scenes),

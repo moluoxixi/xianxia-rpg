@@ -1,3 +1,5 @@
+import { inferGameTypeFromNovel } from './game-type';
+
 export const themeIds = [
   'otome',
   'xianxia',
@@ -104,27 +106,7 @@ export function normalizeThemeSource(value: unknown): GameThemeSource {
 }
 
 export function inferThemeIdFromNovel(novelTitle: string, description = ''): GameThemeId {
-  const text = `${novelTitle}${description}`;
-
-  // 题材推断按最有辨识度的关键词优先匹配，避免泛化词提前吞掉更具体的类型。
-  if (hasAnyKeyword(text, ['校园', '青春', '同桌', '学霸', '校花', '学生']))
-    return 'campus';
-  if (hasAnyKeyword(text, ['都市', '职场', '商战', '豪门', '总裁', '现实']))
-    return 'urban';
-  if (hasAnyKeyword(text, ['悬疑', '灵异', '惊悚', '恐怖', '盗墓', '诡秘', '克苏鲁']))
-    return 'suspense';
-  if (hasAnyKeyword(text, ['科幻', '赛博', '星空', '机甲', '末世', '宇宙', '吞噬星空']))
-    return 'cyberpunk';
-  if (hasAnyKeyword(text, ['西幻', '魔法', '骑士', '龙族', '巫师', '中世纪']))
-    return 'fantasy';
-  if (hasAnyKeyword(text, ['民国', '谍战', '年代', '旧上海']))
-    return 'minguo';
-  if (hasAnyKeyword(text, ['修仙', '仙侠', '玄幻', '武侠', '凡人', '遮天', '斗破', '雪中', '炼气', '筑基', '结丹', '元婴']))
-    return 'xianxia';
-  if (hasAnyKeyword(text, ['乙女', '恋爱', '少女', '日系', '轻小说']))
-    return 'otome';
-
-  return DEFAULT_THEME_ID;
+  return normalizeThemeId(inferGameTypeFromNovel(novelTitle, description));
 }
 
 export function inferThemeIdFromSave(save: ThemeSaveSummary): GameThemeId {
@@ -132,8 +114,4 @@ export function inferThemeIdFromSave(save: ThemeSaveSummary): GameThemeId {
     return normalizeThemeId(save.themeId);
 
   return inferThemeIdFromNovel(save.referenceNovel ?? save.currentScene, `${save.realm}${save.currentScene}`);
-}
-
-function hasAnyKeyword(text: string, keywords: string[]): boolean {
-  return keywords.some(keyword => text.includes(keyword));
 }

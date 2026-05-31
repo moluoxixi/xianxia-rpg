@@ -4,7 +4,7 @@ import type { GameThemeId, GameThemeSource } from '@/domain';
 import { BookOpen, Check, ChevronsUpDown, Clock3, FolderOpen, Loader2, Palette, Play, Plus, RefreshCw, Search, Settings, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Button, Card, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Input, Popover, PopoverClose, PopoverContent, PopoverTrigger, Select, buttonVariants } from '@/components/ui';
-import { gameThemePresets, getGameThemePreset, inferThemeIdFromNovel, inferThemeIdFromSave, themeIds } from '@/domain';
+import { DEFAULT_GAME_TYPE_ID, gameThemePresets, getGameThemePreset, getGameTypePreset, inferGameTypeFromNovel, inferThemeIdFromNovel, inferThemeIdFromSave, normalizeGameTypeId, themeIds } from '@/domain';
 import { cn } from '@/lib/utils';
 
 export function MainMenu({
@@ -20,7 +20,6 @@ export function MainMenu({
   onLoadSave,
   onNewGame,
   onOpenSettings,
-  onPreviewThemeChange,
   onRefreshSaves,
   onSearchNovels,
 }: MainMenuProps) {
@@ -34,6 +33,7 @@ export function MainMenu({
   const selectedNovel = novels.find(novel => novel.id === selectedNovelId) ?? novels[0];
   const latestSave = saves[0];
   const selectedNovelThemeId = selectedNovel ? inferThemeIdFromNovel(selectedNovel.title, selectedNovel.description) : activeThemeId;
+  const selectedNovelGameTypeId = selectedNovel ? inferGameTypeFromNovel(selectedNovel.title, selectedNovel.description) : DEFAULT_GAME_TYPE_ID;
   const selectedThemeId = manualThemeId ?? selectedNovelThemeId;
   const selectedThemeSource: GameThemeSource = manualThemeId ? 'user-override' : 'novel-auto';
   const visibleTheme = getGameThemePreset(newGameOpen ? selectedThemeId : activeThemeId);
@@ -64,7 +64,7 @@ export function MainMenu({
     if (!selectedNovel)
       return;
 
-    onNewGame(selectedNovel.title, selectedThemeId, selectedThemeSource);
+    onNewGame(selectedNovel.title, selectedThemeId, selectedThemeSource, selectedNovelGameTypeId);
     setNewGameOpen(false);
   }
 
@@ -128,15 +128,9 @@ export function MainMenu({
         <div className="theme-status space-y-2 rounded-md border p-3 text-xs leading-5">
           <div>
             {latestSave && latestSaveTheme
-              ? `预览主题：${visibleTheme.label} / 最近存档：${latestSave.playerName}，${latestSave.currentScene} / 存档风格：${latestSaveTheme.label}`
-              : `预览主题：${visibleTheme.label} / 当前没有可继续的存档`}
+              ? `主界面主题：${visibleTheme.label} / 最近存档：${latestSave.playerName}，${latestSave.currentScene} / 存档风格：${latestSaveTheme.label}`
+              : `默认主题：${visibleTheme.label} / 当前没有可继续的存档`}
           </div>
-          <label className="block space-y-1.5">
-            <span className="font-medium text-[color:var(--theme-muted)]">临时切换主题</span>
-            <Select value={activeThemeId} onChange={event => onPreviewThemeChange(event.target.value as GameThemeId)}>
-              {themeIds.map(themeId => <option key={themeId} value={themeId}>{formatThemeOption(themeId)}</option>)}
-            </Select>
-          </label>
         </div>
       </Card>
 
@@ -219,6 +213,7 @@ export function MainMenu({
             <div className="max-h-[46vh] space-y-3 overflow-y-auto pr-1">
               {visibleSaves.map((save) => {
                 const saveTheme = getGameThemePreset(inferThemeIdFromSave(save));
+                const saveGameType = getGameTypePreset(normalizeGameTypeId(save.gameTypeId));
                 return (
                   <div
                     key={save.runId}
@@ -243,6 +238,10 @@ export function MainMenu({
                           <span className="inline-flex min-w-0 items-center gap-1 rounded-sm border border-border px-2 py-1">
                             <Palette className="h-3.5 w-3.5 shrink-0" />
                             <span className="truncate">{formatSaveThemeText(saveTheme)}</span>
+                          </span>
+                          <span className="inline-flex min-w-0 items-center gap-1 rounded-sm border border-border px-2 py-1">
+                            <BookOpen className="h-3.5 w-3.5 shrink-0" />
+                            <span className="truncate">{formatSaveGameTypeText(saveGameType)}</span>
                           </span>
                         </div>
                         <div className="truncate text-sm text-muted-foreground">{save.currentScene}</div>
@@ -297,6 +296,7 @@ function matchesNovelFilter(novel: NovelSummary, keyword: string): boolean {
 
 function matchesSaveFilter(save: MainMenuProps['saves'][number], keyword: string): boolean {
   const theme = getGameThemePreset(inferThemeIdFromSave(save));
+  const gameType = getGameTypePreset(normalizeGameTypeId(save.gameTypeId));
   const searchableText = [
     save.playerName,
     save.realm,
@@ -304,6 +304,8 @@ function matchesSaveFilter(save: MainMenuProps['saves'][number], keyword: string
     formatSaveReferenceNovel(save),
     theme.label,
     theme.tone,
+    gameType.label,
+    gameType.tone,
   ].join(' ').toLocaleLowerCase('zh-CN');
   return searchableText.includes(keyword.toLocaleLowerCase('zh-CN'));
 }
@@ -318,6 +320,10 @@ function formatSaveReferenceText(save: MainMenuProps['saves'][number]): string {
 
 function formatSaveThemeText(theme: ReturnType<typeof getGameThemePreset>): string {
   return `风格：${theme.label} / ${theme.tone}`;
+}
+
+function formatSaveGameTypeText(gameType: ReturnType<typeof getGameTypePreset>): string {
+  return `题材：${gameType.label}`;
 }
 
 function formatThemeOption(themeId: GameThemeId): string {

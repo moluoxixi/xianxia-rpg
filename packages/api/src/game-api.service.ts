@@ -3,6 +3,7 @@ import type { OnModuleInit } from '@nestjs/common';
 import path from 'node:path';
 import { Injectable } from '@nestjs/common';
 import { createDefaultNovelApiSettings, normalizeNovelApiProvider } from '@xianxia-rpg/core';
+import { getAIProviderPreset } from '@xianxia-rpg/model';
 import type { AIChatRequest, AIProviderConfig } from './ai';
 import { chatWithAI } from './ai';
 import { createDefaultAIConfig } from './default-ai-config';
@@ -144,23 +145,46 @@ function getDataDir(): string {
 
 function normalizeRuntimeAIConfig(baseConfig: RuntimeAIConfig, patch: HostSettingsPayload): RuntimeAIConfig {
   const type = (patch.type ?? baseConfig.type) as RuntimeAIConfig['type'];
+  const patchProviderBaseURLs = patch.providerBaseURLs as Partial<RuntimeAIConfig['providerBaseURLs']> | undefined;
   const providerApiKeys = {
     ...baseConfig.providerApiKeys,
     ...(patch.providerApiKeys as Partial<RuntimeAIConfig['providerApiKeys']> | undefined),
   };
+  const providerBaseURLs = {
+    ...baseConfig.providerBaseURLs,
+    ...patchProviderBaseURLs,
+  };
   const providers: RuntimeAIConfig['type'][] = ['openai', 'anthropic'];
   for (const provider of providers) {
     providerApiKeys[provider] = providerApiKeys[provider] || baseConfig.providerApiKeys[provider];
+    providerBaseURLs[provider] = normalizeProviderBaseURL(provider, providerBaseURLs[provider], baseConfig.providerBaseURLs[provider], Boolean(patchProviderBaseURLs));
   }
 
   const apiKey = String(patch.apiKey || providerApiKeys[type] || baseConfig.apiKey);
+  const patchBaseURL = String(patch.baseURL ?? '');
+  const baseURL = patchBaseURL && (patchProviderBaseURLs || !isPresetBaseURL(type, patchBaseURL)) ? patchBaseURL : String(providerBaseURLs[type] || baseConfig.baseURL);
   providerApiKeys[type] = apiKey;
+  providerBaseURLs[type] = baseURL;
 
   return {
     ...baseConfig,
     ...patch,
     type,
+    baseURL,
     apiKey,
     providerApiKeys,
+    providerBaseURLs,
   } as RuntimeAIConfig;
+}
+
+function normalizeProviderBaseURL(type: RuntimeAIConfig['type'], value: string | undefined, fallback: string, hasStoredProviderBaseURLs: boolean): string {
+  if (!value)
+    return fallback;
+  if (!hasStoredProviderBaseURLs && isPresetBaseURL(type, value))
+    return fallback;
+  return value;
+}
+
+function isPresetBaseURL(type: RuntimeAIConfig['type'], value: string): boolean {
+  return value === getAIProviderPreset(type).baseURL;
 }

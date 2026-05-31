@@ -2,6 +2,7 @@ import type { NPC, Scene } from '@xianxia-rpg/core';
 import type { AppliedEvent, ApplyResourceResult, GameState, ResourceChange } from './game-state';
 import { resolveCombat, STARTER_SCENES } from '@xianxia-rpg/core';
 import { getNextRealm, getRealmLevel, getRealmMaxExp, resourceRealmReq, resolveRealmName, skillRealmReq } from './game-data';
+import { getGameTypePreset } from './game-type';
 
 interface AdjudicationResult {
   accepted: boolean;
@@ -16,11 +17,12 @@ export interface LocalActionResolution {
 
 export function buildPlayerStatus(gameState: GameState): string {
   const currentSceneData = resolveCurrentSceneData(gameState);
+  const gameType = getGameTypePreset(gameState.gameTypeId);
   const sceneNpcs = Object.values(gameState.npcs)
     .filter(npc => npc.location === gameState.currentScene && !gameState.defeatedNpcs.includes(npc.id))
     .map(npc => `${npc.name}（${npc.realm},${npc.role === 'enemy' ? '敌人' : npc.role === 'merchant' ? '商人' : '剧情NPC'},好感:${npc.favorability}${npc.attackable ? ',可攻击' : ''}）`);
 
-  return `【剧本】${gameState.scenario.title}\n参考:${gameState.scenario.referenceNovel}\n设定:${gameState.scenario.description}\n风格:${gameState.scenario.stylePrompt}\n\n【玩家状态】\n境界:${gameState.character.realm} 下一境界:${getNextRealm(gameState.character.realm) ?? '已至顶阶'} 气血:${gameState.stats.hp}/${gameState.stats.maxHp} 灵力:${gameState.stats.mp}/${gameState.stats.maxMp} 修为:${gameState.stats.exp}/${gameState.stats.maxExp}\n位置:${gameState.character.location}\n背包:${gameState.inventory.map(i => `${i.name}×${i.count}`).join(', ') || '空'}\n功法:${gameState.skills.map(s => `${s.name}(${s.level})`).join(', ') || '无'}\n\n【当前场景】${gameState.currentScene}\n类型:${currentSceneData?.type ?? '未知'}\n描述:${currentSceneData?.description || '未记录'}\n关联场景:${currentSceneData?.connectedScenes.join(', ') || '无'}\n可获取:${currentSceneData?.availableResources.join(', ') || '无'}\n危险:${currentSceneData?.isDangerous ? '是' : '否'}\n场景NPC:${sceneNpcs.join(', ') || '无'}\n\n【已解锁场景】${Object.keys(gameState.scenes).join(', ')}`;
+  return `【剧本】${gameState.scenario.title}\n参考:${gameState.scenario.referenceNovel}\n题材:${gameType.promptLabel}（${gameType.tone}）\n设定:${gameState.scenario.description}\n风格:${gameState.scenario.stylePrompt}\n\n【玩家状态】\n境界:${gameState.character.realm} 下一境界:${getNextRealm(gameState.character.realm) ?? '已至顶阶'} 气血:${gameState.stats.hp}/${gameState.stats.maxHp} 灵力:${gameState.stats.mp}/${gameState.stats.maxMp} 修为:${gameState.stats.exp}/${gameState.stats.maxExp}\n位置:${gameState.character.location}\n背包:${gameState.inventory.map(i => `${i.name}×${i.count}`).join(', ') || '空'}\n功法:${gameState.skills.map(s => `${s.name}(${s.level})`).join(', ') || '无'}\n\n【当前场景】${gameState.currentScene}\n类型:${currentSceneData?.type ?? '未知'}\n描述:${currentSceneData?.description || '未记录'}\n关联场景:${currentSceneData?.connectedScenes.join(', ') || '无'}\n可获取:${currentSceneData?.availableResources.join(', ') || '无'}\n危险:${currentSceneData?.isDangerous ? '是' : '否'}\n场景NPC:${sceneNpcs.join(', ') || '无'}\n\n【已解锁场景】${Object.keys(gameState.scenes).join(', ')}`;
 }
 
 export function createLocalActionChanges(state: GameState, actionText: string): ResourceChange[] {
@@ -56,7 +58,7 @@ export function resolveLocalAction(state: GameState, actionText: string): LocalA
   const changes = createLocalActionChanges(state, actionText);
   return {
     changes,
-    aiInstruction: buildActionAIInstruction(actionText, changes),
+    aiInstruction: buildActionAIInstruction(state, actionText, changes),
   };
 }
 
@@ -457,12 +459,13 @@ function isCultivationAction(actionText: string): boolean {
   return actionText.includes('修炼') || actionText.includes('练功') || actionText.includes('打坐') || actionText.includes('长春功');
 }
 
-function buildActionAIInstruction(actionText: string, changes: ResourceChange[]): string {
+function buildActionAIInstruction(state: GameState, actionText: string, changes: ResourceChange[]): string {
+  const gameType = getGameTypePreset(state.gameTypeId);
   const settled = describeLocalSettlements(changes);
   if (settled.length > 0) {
     return `【本地规则已结算】玩家行动「${actionText}」已经由本地规则处理：${settled.join('；')}。AI 不要重复返回这些同类资源变化，只推导额外的场景、人物、机缘、风险或快捷指令。`;
   }
-  return `【AI 推导请求】玩家行动「${actionText}」没有固定本地数值结算，请根据当前人物数据、背包、功法、场景和凡人修仙传氛围推导合理后果；若产生资源、场景、NPC 或战斗变化，必须返回结构化资源变化。`;
+  return `【AI 推导请求】玩家行动「${actionText}」没有固定本地数值结算，请根据当前人物数据、背包、功法、场景和${gameType.promptLabel}题材推导合理后果；若产生资源、场景、NPC 或战斗变化，必须返回结构化资源变化。`;
 }
 
 function describeLocalSettlements(changes: ResourceChange[]): string[] {

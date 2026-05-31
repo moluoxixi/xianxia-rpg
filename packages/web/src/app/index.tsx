@@ -1,6 +1,5 @@
 import type { ReactElement } from 'react';
 import type { AppProps } from './types';
-import type { GameThemeId } from '@/domain';
 import { useState } from 'react';
 import { AppHeader, BreakthroughOverlay, ChatPanel, DeathOverlay, InventoryDialog, MainMenu, SettingsDialog, StatusSidebar } from '@/components/game';
 import { DEFAULT_THEME_ID, getGameThemePreset, inferThemeIdFromSave, normalizeThemeId } from '@/domain';
@@ -9,7 +8,6 @@ import { cn } from '@/lib/utils';
 
 export function App({ hostClient }: AppProps): ReactElement {
   const [screen, setScreen] = useState<'menu' | 'game'>('menu');
-  const [previewThemeId, setPreviewThemeId] = useState<GameThemeId | null>(null);
   const {
     activateInventoryItem,
     breakthroughRealm,
@@ -25,6 +23,7 @@ export function App({ hostClient }: AppProps): ReactElement {
     isLoadingSaves,
     isSearchingNovels,
     isSending,
+    changeGameTheme,
     loadGameByRunId,
     loadGame,
     messages,
@@ -67,8 +66,8 @@ export function App({ hostClient }: AppProps): ReactElement {
     void refreshGameSaves();
   }
 
-  const savedMenuThemeId = gameSaves[0] ? inferThemeIdFromSave(gameSaves[0]) : normalizeThemeId(gameState.themeId ?? DEFAULT_THEME_ID);
-  const activeMenuThemeId = previewThemeId ?? savedMenuThemeId;
+  const savedMenuThemeId = gameSaves[0] ? inferThemeIdFromSave(gameSaves[0]) : DEFAULT_THEME_ID;
+  const activeMenuThemeId = savedMenuThemeId;
   const activeGameThemeId = normalizeThemeId(gameState.themeId ?? DEFAULT_THEME_ID);
   const activeGameTheme = getGameThemePreset(activeGameThemeId);
 
@@ -83,12 +82,11 @@ export function App({ hostClient }: AppProps): ReactElement {
           novelSearchMessage={novelSearchMessage}
           searchingNovels={isSearchingNovels}
           activeThemeId={activeMenuThemeId}
-          onNewGame={(novelTitle, themeId, themeSource) => enterGameAfter(() => startNewGame(novelTitle, 'normal', themeId, themeSource))}
+          onNewGame={(novelTitle, themeId, themeSource, gameTypeId) => enterGameAfter(() => startNewGame(novelTitle, 'normal', themeId, themeSource, gameTypeId))}
           onContinueGame={() => enterGameAfter(loadGame)}
           onDeleteSave={deleteGameSave}
           onLoadSave={runId => enterGameAfter(() => loadGameByRunId(runId))}
           onOpenSettings={openSettings}
-          onPreviewThemeChange={setPreviewThemeId}
           onRefreshSaves={() => void refreshGameSaves()}
           onSearchNovels={searchNovels}
         />
@@ -99,13 +97,13 @@ export function App({ hostClient }: AppProps): ReactElement {
 
   return (
     <div className={cn('theme-shell theme-game-shell flex h-screen flex-col text-foreground', activeGameTheme.shellClassName)}>
-      <AppHeader difficulty={gameState.difficulty} onOpenMenu={openMenu} onOpenSettings={openSettings} onSave={saveGame} onLoad={loadGame} />
+      <AppHeader difficulty={gameState.difficulty} themeId={activeGameThemeId} onOpenMenu={openMenu} onOpenSettings={openSettings} onSave={saveGame} onLoad={loadGame} onThemeChange={changeGameTheme} />
       <main className="theme-game-layout flex min-h-0 flex-1">
         <ChatPanel messages={messages} viewportRef={viewportRef} characterName={gameState.character.name} choices={choices} quickActions={quickActions} input={input} isSending={isSending} onInputChange={setInput} onSend={sendAction} />
         <StatusSidebar gameState={gameState} sceneNpcs={sceneNpcs} selectedInventoryKey={selectedInventoryKey} pinnedInventoryKeys={pinnedInventoryKeys} onOpenInventory={openInventory} onSelectInventoryItem={selectInventoryItem} onUseInventoryItem={activateInventoryItem} onDropInventoryItem={dropInventoryItem} onToggleInventoryPin={toggleInventoryPin} />
       </main>
-      <SettingsDialog open={settingsOpen} themeId={gameState.themeId} config={config} onOpenChange={setSettingsOpen} onConfigChange={setConfig} onSave={saveSettings} />
-      <InventoryDialog open={inventoryOpen} themeId={gameState.themeId} items={gameState.inventory} selectedInventoryKey={selectedInventoryKey} pinnedInventoryKeys={pinnedInventoryKeys} onOpenChange={setInventoryOpen} onSelectItem={selectInventoryItem} onUseItem={activateInventoryItem} onDropItem={dropInventoryItem} onTogglePin={toggleInventoryPin} />
+      <SettingsDialog open={settingsOpen} themeId={activeGameThemeId} config={config} onOpenChange={setSettingsOpen} onConfigChange={setConfig} onSave={saveSettings} />
+      <InventoryDialog open={inventoryOpen} themeId={activeGameThemeId} items={gameState.inventory} selectedInventoryKey={selectedInventoryKey} pinnedInventoryKeys={pinnedInventoryKeys} onOpenChange={setInventoryOpen} onSelectItem={selectInventoryItem} onUseItem={activateInventoryItem} onDropItem={dropInventoryItem} onTogglePin={toggleInventoryPin} />
       {gameState.isDead ? <DeathOverlay hard={gameState.difficulty === 'hard'} canRevive={hasReviveStone} onRevive={revivePlayer} onRestart={resetGame} /> : null}
       <BreakthroughOverlay realm={breakthroughRealm} />
     </div>

@@ -36,6 +36,7 @@ export interface GameSaveSummary {
   realm: string;
   currentScene: string;
   updatedAt: string;
+  gameTypeId?: string;
   themeId?: string;
   referenceNovel?: string;
 }

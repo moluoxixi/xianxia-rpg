@@ -42,12 +42,14 @@ export function SettingsModelTab({ config, onConfigChange }: SettingsModelTabPro
     const preset = getAIProviderPreset(type);
     const providerModels = config.modelCatalog[type];
     const providerApiKeys = { ...config.providerApiKeys, [provider]: config.apiKey };
+    const providerBaseURLs = { ...config.providerBaseURLs, [provider]: config.baseURL };
     onConfigChange({
       ...config,
       type,
-      baseURL: preset.baseURL,
+      baseURL: providerBaseURLs[type] || preset.baseURL,
       apiKey: providerApiKeys[type],
       providerApiKeys,
+      providerBaseURLs,
       model: resolveSelectedModelId(preset.model, providerModels),
       maxTokens: String(preset.maxTokens),
       temperature: String(preset.temperature),
@@ -61,6 +63,17 @@ export function SettingsModelTab({ config, onConfigChange }: SettingsModelTabPro
       providerApiKeys: {
         ...config.providerApiKeys,
         [provider]: apiKey,
+      },
+    });
+  }
+
+  function changeBaseURL(baseURL: string): void {
+    onConfigChange({
+      ...config,
+      baseURL,
+      providerBaseURLs: {
+        ...config.providerBaseURLs,
+        [provider]: baseURL,
       },
     });
   }
@@ -122,7 +135,7 @@ export function SettingsModelTab({ config, onConfigChange }: SettingsModelTabPro
           </Select>
         </Field>
         <Field label="请求地址">
-          <Input value={config.baseURL} onChange={event => onConfigChange({ ...config, baseURL: event.target.value })} placeholder={getAIProviderPreset(provider).baseURL} />
+          <Input value={config.baseURL} onChange={event => changeBaseURL(event.target.value)} placeholder={getAIProviderPreset(provider).baseURL} />
         </Field>
         <Field label="API Key">
           <PasswordInput value={config.apiKey} onChange={event => changeApiKey(event.target.value)} placeholder="sk-..." autoComplete="off" />

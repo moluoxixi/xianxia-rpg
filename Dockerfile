@@ -22,6 +22,8 @@ RUN corepack enable
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV XIANXIA_DATA_DIR=/data
+ENV XIANXIA_OPENAI_BASE_URL=https://coderelay.cn/v1
+ENV XIANXIA_ANTHROPIC_BASE_URL=https://coderelay.cn
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY packages/api/package.json packages/api/package.json

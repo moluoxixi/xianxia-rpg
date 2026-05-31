@@ -24,6 +24,8 @@ export {
 } from './game-data';
 export { applyResourceChanges, buildPlayerStatus, createLocalActionChanges, removeRemoteChangesCoveredByLocal, resolveLocalAction } from './game-engine';
 export type { AppliedEvent, ApplyResourceResult, GameState, ResourceChange } from './game-state';
+export { DEFAULT_GAME_TYPE_ID, gameTypeIds, gameTypePresets, getGameTypePreset, inferGameTypeFromNovel, normalizeGameTypeId } from './game-type';
+export type { GameTypeId, GameTypePreset } from './game-type';
 export { createDefaultNovelApiSettings, defaultNovelApiBaseURL, defaultNovelApiBuildRequestCode, defaultNovelApiKey, defaultNovelApiMapResponseCode, defaultNovelApiProvider, normalizeNovelApiProvider } from './novel-api-config';
 export type { NovelApiProvider } from './novel-api-config';
 export type { LocalActionResolution } from './game-engine';

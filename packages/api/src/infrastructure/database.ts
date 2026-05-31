@@ -19,9 +19,10 @@ interface SaveGamePayload {
   runId?: string;
   character?: { name?: string; realm?: string; location?: string };
   currentScene?: string;
+  gameTypeId?: string;
   themeId?: string;
   themeSource?: string;
-  scenario?: { referenceNovel?: string };
+  scenario?: { referenceNovel?: string; gameTypeId?: string };
   scenes?: unknown;
   npcs?: unknown;
   inventory?: unknown;
@@ -174,6 +175,7 @@ export class GameDatabase {
         realm: String(row[2]),
         currentScene: String(row[3]),
         updatedAt: String(row[4]),
+        gameTypeId: snapshot.gameTypeId ?? snapshot.scenario?.gameTypeId,
         themeId: snapshot.themeId,
         referenceNovel: snapshot.scenario?.referenceNovel,
       };
