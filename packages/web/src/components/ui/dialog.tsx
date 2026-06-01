@@ -7,7 +7,11 @@ export const DialogTrigger = DialogPrimitive.Trigger;
 export const DialogClose = DialogPrimitive.Close;
 export const DialogDescription = DialogPrimitive.Description;
 
-export function DialogContent({ className, children, ...props }: DialogPrimitive.DialogContentProps) {
+interface DialogContentProps extends DialogPrimitive.DialogContentProps {
+  showClose?: boolean;
+}
+
+export function DialogContent({ className, children, showClose = true, ...props }: DialogContentProps) {
   return (
     <DialogPrimitive.Portal>
       <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/60" />
@@ -19,9 +23,13 @@ export function DialogContent({ className, children, ...props }: DialogPrimitive
         {...props}
       >
         {children}
-        <DialogPrimitive.Close className="absolute right-4 top-4 rounded-md p-1 text-muted-foreground hover:bg-secondary hover:text-foreground">
-          <X className="h-4 w-4" />
-        </DialogPrimitive.Close>
+        {showClose
+          ? (
+              <DialogPrimitive.Close className="absolute right-4 top-4 rounded-md p-1 text-muted-foreground hover:bg-secondary hover:text-foreground">
+                <X className="h-4 w-4" />
+              </DialogPrimitive.Close>
+            )
+          : null}
       </DialogPrimitive.Content>
     </DialogPrimitive.Portal>
   );

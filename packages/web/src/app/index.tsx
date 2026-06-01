@@ -113,7 +113,7 @@ export function App({ hostClient }: AppProps): ReactElement {
       </main>
       <SettingsDialog open={settingsOpen} themeId={activeGameThemeId} config={config} onOpenChange={setSettingsOpen} onConfigChange={setConfig} onSave={saveSettings} />
       <InventoryDialog open={inventoryOpen} themeId={activeGameThemeId} items={gameState.inventory} selectedInventoryKey={selectedInventoryKey} pinnedInventoryKeys={pinnedInventoryKeys} onOpenChange={setInventoryOpen} onSelectItem={selectInventoryItem} onUseItem={activateInventoryItem} onDropItem={dropInventoryItem} onTogglePin={toggleInventoryPin} />
-      {gameState.isDead ? <DeathOverlay hard={gameState.difficulty === 'hard'} canRevive={canRevive} onRevive={revivePlayer} onRestart={resetGame} /> : null}
+      {gameState.isDead ? <DeathOverlay hard={gameState.difficulty === 'hard'} canRevive={canRevive} themeId={activeGameThemeId} onRevive={revivePlayer} onRestart={resetGame} /> : null}
       <BreakthroughOverlay realm={breakthroughRealm} />
     </div>
   );

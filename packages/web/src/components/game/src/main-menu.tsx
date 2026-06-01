@@ -161,7 +161,7 @@ export function MainMenu({
                   <span className="min-w-0 flex-1 truncate">{selectedNovel ? formatNovelOption(selectedNovel) : '暂无可选小说'}</span>
                   {searchingNovels ? <Loader2 className="h-4 w-4 shrink-0 animate-spin" /> : <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-60" />}
                 </PopoverTrigger>
-                <PopoverContent align="start" className="w-full min-w-[320px] space-y-2 p-2">
+                <PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] min-w-[320px] space-y-2 p-2">
                   <Input value={novelFilter} onChange={event => setNovelFilter(event.target.value)} placeholder="搜索小说名或作者" autoFocus />
                   <div className="max-h-56 overflow-y-auto">
                     {visibleNovels.map(novel => (

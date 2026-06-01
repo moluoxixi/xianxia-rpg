@@ -33,6 +33,7 @@ export interface ChatPanelProps {
 export interface DeathOverlayProps {
   hard: boolean;
   canRevive: boolean;
+  themeId: GameThemeId;
   onRevive: () => void;
   onRestart: () => void;
 }
