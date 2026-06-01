@@ -29,7 +29,7 @@ export function InventoryItemEntry({
           onClick={() => onViewDetails(item)}
         >
           <span className={cn('grid shrink-0 place-items-center rounded bg-card font-semibold text-primary', compact ? 'h-7 w-7 text-xs' : 'h-9 w-9 text-sm')}>
-            {getItemIcon(item.name)}
+            {getItemIcon(item)}
           </span>
           <span className="min-w-0 flex-1 truncate">
             {item.name}

@@ -43,6 +43,8 @@ export type {
   HostRequestMethod,
   HostRequestPath,
   HostSaveGameResult,
+  HostScenarioGeneratePayload,
+  HostScenarioGenerateResult,
   HostSettingsPayload,
   HostSettingsResult,
 } from './src/host';
@@ -64,10 +66,6 @@ export type {
   NovelApiProvider,
   NovelApiSettingsPreset,
 } from './src/novel-api-config';
-export {
-  INITIAL_SCENE,
-  STARTER_SCENES,
-} from './src/scene';
 export type {
   NPC,
   NPCRole,

@@ -5,13 +5,13 @@ import { Button, Select } from '@/components/ui';
 import { gameThemePresets, themeIds } from '@/domain';
 import { cn } from '@/lib/utils';
 
-export function AppHeader({ difficulty, themeId, onLoad, onOpenMenu, onOpenSettings, onSave, onThemeChange }: AppHeaderProps) {
+export function AppHeader({ difficulty, subtitle, themeId, title, onLoad, onOpenMenu, onOpenSettings, onSave, onThemeChange }: AppHeaderProps) {
   return (
     <header className="app-region-drag theme-game-header flex items-center justify-between border-b px-5 py-2.5">
-      <div className="flex items-center gap-3">
+      <div className="min-w-0 flex items-center gap-3">
         <Sparkles className="h-6 w-6 text-primary" />
-        <h1 className="text-xl font-semibold tracking-[4px] text-primary">凡人修仙传</h1>
-        <span className="border-l border-border pl-3 text-xs text-muted-foreground">AI修仙文字冒险</span>
+        <h1 className="max-w-[260px] truncate text-xl font-semibold tracking-normal text-primary">{title}</h1>
+        <span className="shrink-0 border-l border-border pl-3 text-xs text-muted-foreground">{subtitle}</span>
       </div>
       <div className="app-region-no-drag flex items-center gap-2">
         <DifficultyBadge difficulty={difficulty} />

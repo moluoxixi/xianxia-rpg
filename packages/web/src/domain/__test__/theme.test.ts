@@ -17,18 +17,18 @@ describe('theme inference', () => {
     ['赛博星门', '科幻机甲与宇宙远征', 'cyberpunk'],
     ['龙与骑士', '西幻魔法与中世纪冒险', 'fantasy'],
     ['旧上海往事', '民国谍战与年代风云', 'minguo'],
-    ['凡人修仙传', '炼气筑基结丹元婴一路修行', 'xianxia'],
+    ['遮天', '秘境修行与圣地世家的玄幻世界', 'xianxia'],
     ['乙女恋曲', '日系少女与轻小说感剧情', 'otome'],
   ])('infers %s as %s', (title, description, themeId) => {
     expect(inferThemeIdFromNovel(title, description)).toBe(themeId);
   });
 
-  it('falls back to xianxia for old save data with cultivation realm text', () => {
-    expect(inferThemeIdFromSave({ currentScene: '练功房', realm: '炼气期一层' })).toBe('xianxia');
+  it('uses the default theme when a save summary does not store themeId', () => {
+    expect(inferThemeIdFromSave({ currentScene: '任意场景', realm: '任意身份' })).toBe(DEFAULT_THEME_ID);
   });
 
   it('keeps explicit save theme ids', () => {
-    expect(inferThemeIdFromSave({ themeId: 'urban', currentScene: '练功房', realm: '炼气期一层' })).toBe('urban');
+    expect(inferThemeIdFromSave({ themeId: 'urban', currentScene: '中央车站', realm: '调查员' })).toBe('urban');
   });
 
   it('normalizes invalid values back to the default theme', () => {

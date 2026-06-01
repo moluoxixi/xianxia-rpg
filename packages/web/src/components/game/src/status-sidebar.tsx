@@ -4,7 +4,7 @@ import type { StatusSidebarProps } from './types';
 import { BookOpen, ChevronRight, Heart, Map, MessageSquare, Package, Shield, Sparkles, User, Waves } from 'lucide-react';
 import { Card } from '@/components/ui';
 import { InventoryItemEntry } from './inventory-item-entry';
-import { createInventoryViewItems, statPercent } from '@/domain';
+import { createInventoryViewItems, getGameTypePreset, statPercent } from '@/domain';
 
 export function StatusSidebar({
   gameState,
@@ -18,6 +18,7 @@ export function StatusSidebar({
   selectedInventoryKey,
 }: StatusSidebarProps) {
   const inventoryItems = createInventoryViewItems(gameState.inventory, pinnedInventoryKeys);
+  const gameTypeUi = getGameTypePreset(gameState.gameTypeId).ui;
 
   return (
     <aside className="theme-game-sidebar w-[320px] shrink-0 overflow-y-auto p-4">
@@ -25,16 +26,16 @@ export function StatusSidebar({
         <PanelTitle icon={<User className="h-4 w-4" />} title="角色状态" />
         <InfoRow label="剧本" value={gameState.scenario.title} />
         <InfoRow label="姓名" value={gameState.character.name} />
-        <InfoRow label="境界" value={gameState.character.realm} highlight />
-        <InfoRow label="门派" value={gameState.character.sect} />
+        <InfoRow label={gameTypeUi.rankLabel} value={gameState.character.realm} highlight />
+        <InfoRow label={gameTypeUi.factionLabel} value={gameState.character.sect} />
         <InfoRow label="位置" value={gameState.character.location} />
       </Card>
 
       <Card className="theme-game-card mb-4 p-3">
         <PanelTitle icon={<Shield className="h-4 w-4" />} title="属性" />
-        <StatBar icon={<Heart className="h-3.5 w-3.5" />} label="气血" value={gameState.stats.hp} max={gameState.stats.maxHp} className="from-hp-gradient-from to-hp-gradient-to" />
-        <StatBar icon={<Waves className="h-3.5 w-3.5" />} label="灵力" value={gameState.stats.mp} max={gameState.stats.maxMp} className="from-mp-gradient-from to-mp-gradient-to" />
-        <StatBar icon={<Sparkles className="h-3.5 w-3.5" />} label="修为" value={gameState.stats.exp} max={gameState.stats.maxExp} className="from-exp-gradient-from to-exp-gradient-to" />
+        <StatBar icon={<Heart className="h-3.5 w-3.5" />} label={gameTypeUi.statLabels.hp} value={gameState.stats.hp} max={gameState.stats.maxHp} className="from-hp-gradient-from to-hp-gradient-to" />
+        <StatBar icon={<Waves className="h-3.5 w-3.5" />} label={gameTypeUi.statLabels.mp} value={gameState.stats.mp} max={gameState.stats.maxMp} className="from-mp-gradient-from to-mp-gradient-to" />
+        <StatBar icon={<Sparkles className="h-3.5 w-3.5" />} label={gameTypeUi.statLabels.exp} value={gameState.stats.exp} max={gameState.stats.maxExp} className="from-exp-gradient-from to-exp-gradient-to" />
       </Card>
 
       <Card className="theme-game-card mb-4 p-3">
@@ -71,16 +72,18 @@ export function StatusSidebar({
       </Card>
 
       <Card className="theme-game-card mb-4 p-3">
-        <PanelTitle icon={<BookOpen className="h-4 w-4" />} title="功法" />
+        <PanelTitle icon={<BookOpen className="h-4 w-4" />} title={gameTypeUi.abilitiesTitle} />
         <div className="flex flex-col gap-1.5">
-          {gameState.skills.map(skill => (
-            <div key={skill.id ?? skill.name} className="rounded bg-secondary px-2 py-1.5 text-xs text-foreground/80">
-              {skill.name}
-              （
-              {skill.level}
-              ）
-            </div>
-          ))}
+          {gameState.skills.length === 0
+            ? <div className="rounded border border-dashed border-border py-4 text-center text-xs text-muted-foreground">{gameTypeUi.emptyAbilitiesText}</div>
+            : gameState.skills.map(skill => (
+                <div key={skill.id ?? skill.name} className="rounded bg-secondary px-2 py-1.5 text-xs text-foreground/80">
+                  {skill.name}
+                  （
+                  {skill.level}
+                  ）
+                </div>
+              ))}
         </div>
       </Card>
 

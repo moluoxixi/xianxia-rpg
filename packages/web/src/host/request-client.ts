@@ -15,6 +15,8 @@ import type {
   HostMessagePayload,
   HostMessageResult,
   HostNovelSearchResult,
+  HostScenarioGeneratePayload,
+  HostScenarioGenerateResult,
   NovelSearchPayload,
   HostSaveGameResult,
   HostSettingsPayload,
@@ -39,6 +41,10 @@ export function createRequestGameHostClient(): GameHostClient {
     loadGameByRunId: async runId =>
       requestHost<HostLoadGameResult, HostLoadGameByRunIdPayload>('/game/load', { method: 'POST', body: { runId } })
         .catch(error => ({ success: false, data: null, message: getErrorMessage(error) })),
+
+    generateScenario: async payload =>
+      requestHost<HostScenarioGenerateResult, HostScenarioGeneratePayload>('/game/scenario/generate', { method: 'POST', body: payload })
+        .catch(error => ({ success: false, message: getErrorMessage(error) })),
 
     listGameSaves: async () =>
       requestHost<HostGameSavesResult>('/game/saves', { method: 'GET' })

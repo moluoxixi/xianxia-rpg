@@ -1,8 +1,7 @@
 import type { GameHostClient, GameSaveSummary, NovelSummary, NPC } from '@xianxia-rpg/core';
 import type { AIModelCatalog } from '@xianxia-rpg/model';
 import type { GameSessionController } from './types';
-import type { AIConfigForm, AppliedEvent, ApplyResourceResult, ChatMessage, Choice, Difficulty, GameState, GameThemeId, GameThemeSource, GameTypeId, InventoryItem, Role } from '@/domain';
-import { INITIAL_SCENE } from '@xianxia-rpg/core';
+import type { AIConfigForm, AppliedEvent, ApplyResourceResult, ChatMessage, Choice, Difficulty, GameState, GameThemeId, GameThemeSource, GameTypeId, InventoryItem, Role, ScenarioGenerationSeed } from '@/domain';
 import { createDefaultModelCatalog, createDefaultModelSettings } from '@xianxia-rpg/model';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -37,18 +36,12 @@ import {
 } from '@/domain';
 import { getGameHostClient } from '@/host';
 
-const welcomeMessage: ChatMessage = {
-  id: 'welcome',
-  role: 'system',
-  time: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
-  content: '欢迎来到修仙世界！你是一个出身贫寒的凡人，偶然间踏入修仙之门。\n\n当前你身处七玄门外门弟子居所，修为尚在炼气期一层。\n\n你可以选择与周围的人交谈、探索门派、修炼功法，或者外出历练。',
-};
-
 const defaultModelSettings = createDefaultModelSettings('openai');
 const defaultProviderBaseURLs = {
   openai: createDefaultModelSettings('openai').baseURL,
   anthropic: createDefaultModelSettings('anthropic').baseURL,
 };
+const reviveTokenItemName = '复苏凭证';
 
 const defaultConfig: AIConfigForm = {
   type: defaultModelSettings.type,
@@ -79,11 +72,29 @@ function findLastAssistantMessage(messages: ChatMessage[]): ChatMessage | undefi
   return undefined;
 }
 
+function normalizeNovelStartInput(novelInput: NovelSummary | string): { title: string; author?: string; description?: string } {
+  if (typeof novelInput === 'string')
+    return { title: novelInput };
+  return { title: novelInput.title, author: novelInput.author, description: novelInput.description };
+}
+
+function createOpeningMessage(gameState: GameState): ChatMessage {
+  return createMessage('system', gameState.scenario.openingMessage);
+}
+
+function createLoadedMessages(gameState: GameState, successMessage: string): ChatMessage[] {
+  return [
+    createOpeningMessage(gameState),
+    ...gameState.chatHistory.map(message => createMessage(message.role as Role, message.content)),
+    createMessage('system', successMessage),
+  ];
+}
+
 export function useGameSession(client?: GameHostClient): GameSessionController {
   const hostClient = useMemo(() => client ?? getGameHostClient(), [client]);
   const initialGameState = useMemo(() => cloneInitialState(), []);
   const [gameState, setGameState] = useState<GameState>(initialGameState);
-  const [messages, setMessages] = useState<ChatMessage[]>([welcomeMessage]);
+  const [messages, setMessages] = useState<ChatMessage[]>(() => [createOpeningMessage(initialGameState)]);
   const [input, setInput] = useState('');
   const [quickActions, setQuickActions] = useState<string[]>(() => getDefaultQuickActions(initialGameState));
   const [choices, setChoices] = useState<Choice[]>([]);
@@ -94,6 +105,7 @@ export function useGameSession(client?: GameHostClient): GameSessionController {
   const [isSearchingNovels, setIsSearchingNovels] = useState(false);
   const [saveListMessage, setSaveListMessage] = useState('');
   const [novelSearchMessage, setNovelSearchMessage] = useState('');
+  const [newGameMessage, setNewGameMessage] = useState('');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [inventoryOpen, setInventoryOpen] = useState(false);
   const [selectedInventoryKey, setSelectedInventoryKey] = useState<string | null>(null);
@@ -170,7 +182,8 @@ export function useGameSession(client?: GameHostClient): GameSessionController {
   function clearCurrentGameSession(message?: string): void {
     const nextInitialGameState = cloneInitialState();
     setGameState(nextInitialGameState);
-    setMessages(message ? [welcomeMessage, createMessage('system', message)] : [welcomeMessage]);
+    const openingMessage = createOpeningMessage(nextInitialGameState);
+    setMessages(message ? [openingMessage, createMessage('system', message)] : [openingMessage]);
     setInput('');
     setQuickActions(getDefaultQuickActions(nextInitialGameState));
     setChoices([]);
@@ -204,9 +217,9 @@ export function useGameSession(client?: GameHostClient): GameSessionController {
 
     const loadedPinnedKeys = await loadPinnedInventoryKeys(loadedState.runId);
     setGameState(loadedState);
+    setMessages(createLoadedMessages(loadedState, successMessage));
     setPinnedInventoryKeys(loadedPinnedKeys);
     setQuickActions(getDefaultQuickActions(loadedState));
-    pushMessage('system', successMessage);
     return true;
   }
 
@@ -224,7 +237,7 @@ export function useGameSession(client?: GameHostClient): GameSessionController {
     if (!text || isSending)
       return;
     if (gameState.isDead) {
-      pushMessage('system', '你已身殒道消，无法继续行动。');
+      pushMessage('system', '角色已经倒下，无法继续行动。');
       return;
     }
 
@@ -420,14 +433,33 @@ export function useGameSession(client?: GameHostClient): GameSessionController {
     return true;
   }
 
-  async function startNewGame(novelTitle = availableNovelScenarios[0].referenceNovel, difficulty: Difficulty = 'normal', themeId: GameThemeId = inferThemeIdFromNovel(novelTitle), themeSource: GameThemeSource = 'novel-auto', gameTypeId: GameTypeId = inferGameTypeFromNovel(novelTitle)): Promise<boolean> {
-    const nextState = cloneScenarioInitialState(createScenarioFromNovelTitle(novelTitle, themeId, themeSource, gameTypeId));
+  async function startNewGame(novelInput: NovelSummary | string = availableNovelScenarios[0].referenceNovel, difficulty: Difficulty = 'normal', themeId?: GameThemeId, themeSource: GameThemeSource = 'novel-auto', gameTypeId?: GameTypeId): Promise<boolean> {
+    const novel = normalizeNovelStartInput(novelInput);
+    const resolvedThemeId = themeId ?? inferThemeIdFromNovel(novel.title, novel.description);
+    const resolvedGameTypeId = gameTypeId ?? inferGameTypeFromNovel(novel.title, novel.description);
+    setNewGameMessage('');
+
+    const scenarioResult = await hostClient.generateScenario({
+      referenceNovel: novel.title,
+      author: novel.author,
+      description: novel.description,
+      difficulty,
+      gameTypeId: resolvedGameTypeId,
+      themeId: resolvedThemeId,
+    });
+    if (!scenarioResult.success || !scenarioResult.data) {
+      setNewGameMessage(scenarioResult.message ?? 'AI 开局生成失败，请检查模型配置。');
+      return false;
+    }
+
+    const generatedSeed = scenarioResult.data as ScenarioGenerationSeed;
+    const nextState = cloneScenarioInitialState(createScenarioFromNovelTitle(novel.title, resolvedThemeId, themeSource, resolvedGameTypeId, generatedSeed));
     nextState.difficulty = difficulty;
     const nextPinnedKeys = [...pinnedItems];
     setGameState(nextState);
     setPinnedInventoryKeys(nextPinnedKeys);
     setMessages([createMessage('system', nextState.scenario.openingMessage)]);
-    setQuickActions(getDefaultQuickActions(nextState));
+    setQuickActions(nextState.scenario.initialQuickActions?.length ? nextState.scenario.initialQuickActions : getDefaultQuickActions(nextState));
     setChoices([]);
     setSelectedInventoryKey(null);
     await persistGame(nextState, [], nextPinnedKeys);
@@ -453,19 +485,20 @@ export function useGameSession(client?: GameHostClient): GameSessionController {
   function revivePlayer(): void {
     setGameState((current) => {
       const next = structuredClone(current);
-      const stone = next.inventory.find(item => item.name === '下品灵石');
-      if (stone)
-        stone.count -= 20;
+      const reviveToken = next.inventory.find(item => item.name === reviveTokenItemName);
+      if (reviveToken)
+        reviveToken.count -= 1;
       next.inventory = next.inventory.filter(item => item.count > 0);
       next.stats.hp = Math.floor(next.stats.maxHp * 0.5);
       next.stats.mp = Math.floor(next.stats.maxMp * 0.3);
       next.isDead = false;
-      next.character.location = INITIAL_SCENE.name;
-      next.currentScene = INITIAL_SCENE.name;
+      const revivalScene = next.scenes[next.currentScene] ? next.currentScene : next.scenario.initialSceneName;
+      next.character.location = revivalScene;
+      next.currentScene = revivalScene;
       void persistGame(next).catch(error => reportAsyncError('复活存档', error));
       return next;
     });
-    pushMessage('system', '你消耗了 20 下品灵石，在七玄门弟子居所苏醒过来。');
+    pushMessage('system', `你消耗了 1 个${reviveTokenItemName}，在当前剧本中重新站起。`);
   }
 
   function dropInventoryItem(index: number): void {
@@ -484,7 +517,7 @@ export function useGameSession(client?: GameHostClient): GameSessionController {
     }
   }
 
-  const hasReviveStone = gameState.inventory.some(item => item.name === '下品灵石' && item.count >= 20);
+  const canRevive = gameState.inventory.some(item => item.name === reviveTokenItemName && item.count >= 1);
 
   return {
     gameState,
@@ -505,9 +538,10 @@ export function useGameSession(client?: GameHostClient): GameSessionController {
     gameSaves,
     novels,
     sceneNpcs,
-    hasReviveStone,
+    canRevive,
     isSearchingNovels,
     novelSearchMessage,
+    newGameMessage,
     setInput,
     setSettingsOpen,
     setInventoryOpen,

@@ -13,6 +13,7 @@ export function MainMenu({
   loading,
   searchingNovels,
   message,
+  newGameMessage,
   novelSearchMessage,
   activeThemeId,
   onContinueGame,
@@ -26,6 +27,7 @@ export function MainMenu({
   const [newGameOpen, setNewGameOpen] = useState(false);
   const [loadSavesOpen, setLoadSavesOpen] = useState(false);
   const [deletingRunId, setDeletingRunId] = useState<string | null>(null);
+  const [startingGame, setStartingGame] = useState(false);
   const [novelFilter, setNovelFilter] = useState('');
   const [saveFilter, setSaveFilter] = useState('');
   const [selectedNovelId, setSelectedNovelId] = useState(novels[0]?.id ?? '');
@@ -60,12 +62,19 @@ export function MainMenu({
     setManualThemeId(themeId === selectedNovelThemeId ? null : themeId);
   }
 
-  function startSelectedNovel(): void {
+  async function startSelectedNovel(): Promise<void> {
     if (!selectedNovel)
       return;
 
-    onNewGame(selectedNovel.title, selectedThemeId, selectedThemeSource, selectedNovelGameTypeId);
-    setNewGameOpen(false);
+    setStartingGame(true);
+    try {
+      const entered = await onNewGame(selectedNovel, selectedThemeId, selectedThemeSource, selectedNovelGameTypeId);
+      if (entered)
+        setNewGameOpen(false);
+    }
+    finally {
+      setStartingGame(false);
+    }
   }
 
   function openLoadSaves(): void {
@@ -157,7 +166,7 @@ export function MainMenu({
                     {visibleNovels.map(novel => (
                       <PopoverClose
                         key={novel.id}
-                        className="flex w-full items-center gap-2 rounded-sm px-2 py-2 text-left text-sm transition-colors hover:bg-accent"
+                        className="theme-option-item flex w-full items-center gap-2 rounded-sm px-2 py-2 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         onClick={() => selectNovel(novel.id)}
                       >
                         <Check className={cn('h-4 w-4 shrink-0', novel.id === selectedNovel?.id ? 'opacity-100' : 'opacity-0')} />
@@ -180,11 +189,12 @@ export function MainMenu({
             {novelSearchMessage && novels.length === 0 ? <p className="rounded-sm border border-destructive/40 bg-destructive/10 px-2 py-1 text-xs leading-5 text-destructive">{novelSearchMessage}</p> : null}
             <div className="flex justify-end gap-2">
               <Button variant="secondary" onClick={() => setNewGameOpen(false)}>取消</Button>
-              <Button disabled={!selectedNovel || searchingNovels} onClick={startSelectedNovel}>
-                <BookOpen className="h-4 w-4" />
-                新开游戏
+              <Button disabled={!selectedNovel || searchingNovels || startingGame} onClick={() => void startSelectedNovel()}>
+                {startingGame ? <Loader2 className="h-4 w-4 animate-spin" /> : <BookOpen className="h-4 w-4" />}
+                {startingGame ? '生成开局中' : '新开游戏'}
               </Button>
             </div>
+            {newGameMessage ? <p className="rounded-sm border border-destructive/40 bg-destructive/10 px-2 py-1 text-xs leading-5 text-destructive">{newGameMessage}</p> : null}
           </div>
         </DialogContent>
       </Dialog>
@@ -198,7 +208,7 @@ export function MainMenu({
           <div className="space-y-4 p-5">
             <div className="flex items-center justify-between gap-3">
               <p className="text-sm text-muted-foreground">按更新时间排序，选择任意存档进入。</p>
-              <Button size="sm" variant="outline" onClick={onRefreshSaves}>
+              <Button size="sm" color="secondary" className="load-save-refresh-button" onClick={onRefreshSaves}>
                 <RefreshCw className="h-4 w-4" />
                 刷新
               </Button>
@@ -217,29 +227,29 @@ export function MainMenu({
                 return (
                   <div
                     key={save.runId}
-                    className="flex w-full items-center justify-between gap-3 rounded-md border border-border bg-card p-3 transition-colors hover:border-primary/60"
+                    className="load-save-item group flex w-full items-stretch justify-between gap-2 rounded-md border transition-colors"
                   >
                     <button
                       type="button"
-                      className="min-w-0 flex-1 rounded-sm p-1 text-left transition-colors hover:bg-accent"
+                      className="load-save-main min-w-0 flex-1 rounded-md px-3 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       onClick={() => loadSelectedSave(save.runId)}
                     >
                       <div className="min-w-0 space-y-2">
                         <div className="flex items-center gap-2 text-sm font-semibold">
                           <FolderOpen className="h-4 w-4 shrink-0 text-primary" />
                           <span className="truncate">{save.playerName}</span>
-                          <span className="rounded-sm bg-secondary px-2 py-0.5 text-xs text-secondary-foreground">{save.realm}</span>
+                          <span className="load-save-realm rounded-sm px-2 py-0.5 text-xs">{save.realm}</span>
                         </div>
                         <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                          <span className="inline-flex min-w-0 items-center gap-1 rounded-sm border border-border px-2 py-1">
+                          <span className="load-save-chip inline-flex min-w-0 items-center gap-1 rounded-sm border px-2 py-1">
                             <BookOpen className="h-3.5 w-3.5 shrink-0" />
                             <span className="truncate">{formatSaveReferenceText(save)}</span>
                           </span>
-                          <span className="inline-flex min-w-0 items-center gap-1 rounded-sm border border-border px-2 py-1">
+                          <span className="load-save-chip inline-flex min-w-0 items-center gap-1 rounded-sm border px-2 py-1">
                             <Palette className="h-3.5 w-3.5 shrink-0" />
                             <span className="truncate">{formatSaveThemeText(saveTheme)}</span>
                           </span>
-                          <span className="inline-flex min-w-0 items-center gap-1 rounded-sm border border-border px-2 py-1">
+                          <span className="load-save-chip inline-flex min-w-0 items-center gap-1 rounded-sm border px-2 py-1">
                             <BookOpen className="h-3.5 w-3.5 shrink-0" />
                             <span className="truncate">{formatSaveGameTypeText(saveGameType)}</span>
                           </span>
@@ -247,14 +257,14 @@ export function MainMenu({
                         <div className="truncate text-sm text-muted-foreground">{save.currentScene}</div>
                       </div>
                     </button>
-                    <div className="flex shrink-0 items-center gap-2">
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <div className="flex shrink-0 items-center gap-2 py-3 pr-3">
+                      <div className="load-save-time flex items-center gap-1 text-xs">
                         <Clock3 className="h-3.5 w-3.5" />
                         {formatSaveTime(save.updatedAt)}
                       </div>
                       <Popover>
-                        <PopoverTrigger className={buttonVariants({ variant: 'ghost', size: 'icon' })} aria-label={`删除 ${save.playerName} 的存档`}>
-                          <Trash2 className="h-4 w-4 text-destructive" />
+                        <PopoverTrigger className={buttonVariants({ variant: 'ghost', size: 'icon', className: 'load-save-delete-trigger shrink-0' })} aria-label={`删除 ${save.playerName} 的存档`}>
+                          <Trash2 className="h-4 w-4" />
                         </PopoverTrigger>
                         <PopoverContent align="end" className="space-y-3">
                           <div className="space-y-1">

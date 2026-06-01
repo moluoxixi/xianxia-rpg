@@ -59,7 +59,7 @@ export function InventoryDialog({
                   <div className="flex h-full flex-col">
                     <div className="flex items-start gap-3 border-b border-border pb-4">
                       <div className="grid h-14 w-14 shrink-0 place-items-center rounded-lg bg-secondary text-xl font-semibold text-primary">
-                        {getItemIcon(selectedItem.name)}
+                        {getItemIcon(selectedItem)}
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 text-base font-semibold text-foreground">

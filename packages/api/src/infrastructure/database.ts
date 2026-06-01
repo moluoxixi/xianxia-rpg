@@ -95,8 +95,8 @@ export class GameDatabase {
     const snapshot: SaveGamePayload = { ...data, runId };
     delete snapshot.pendingEvents;
 
-    const playerName = data.character?.name ?? '韩立';
-    const realm = data.character?.realm ?? '炼气期一层';
+    const playerName = data.character?.name ?? '玩家';
+    const realm = data.character?.realm ?? '未定身份';
     const currentScene = data.currentScene ?? data.character?.location ?? '未知场景';
     const generatedWorld = {
       currentScene,
@@ -338,7 +338,7 @@ export class GameDatabase {
     const result = db.exec('SELECT COALESCE(MAX(turn_index), 0) + 1 FROM game_turns WHERE run_id = ?', [runId]);
     const turnIndex = Number(result[0]?.values[0]?.[0] ?? 1);
     const character = snapshot.character;
-    const playerSummary = `${character?.name ?? '韩立'} / ${character?.realm ?? '炼气期一层'} / ${snapshot.currentScene ?? character?.location ?? '未知场景'}`;
+    const playerSummary = `${character?.name ?? '玩家'} / ${character?.realm ?? '未定身份'} / ${snapshot.currentScene ?? character?.location ?? '未知场景'}`;
     db.run(
       `INSERT INTO game_turns (run_id, turn_index, current_scene, player_summary, snapshot_json, created_at)
        VALUES (?, ?, ?, ?, ?, ?)`,

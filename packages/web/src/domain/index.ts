@@ -25,12 +25,12 @@ export {
 export { applyResourceChanges, buildPlayerStatus, createLocalActionChanges, removeRemoteChangesCoveredByLocal, resolveLocalAction } from './game-engine';
 export type { AppliedEvent, ApplyResourceResult, GameState, ResourceChange } from './game-state';
 export { DEFAULT_GAME_TYPE_ID, gameTypeIds, gameTypePresets, getGameTypePreset, inferGameTypeFromNovel, normalizeGameTypeId } from './game-type';
-export type { GameTypeId, GameTypePreset } from './game-type';
+export type { GameTypeId, GameTypePreset, GameTypeUiPreset } from './game-type';
 export { createDefaultNovelApiSettings, defaultNovelApiBaseURL, defaultNovelApiBuildRequestCode, defaultNovelApiKey, defaultNovelApiMapResponseCode, defaultNovelApiProvider, normalizeNovelApiProvider } from './novel-api-config';
 export type { NovelApiProvider } from './novel-api-config';
 export type { LocalActionResolution } from './game-engine';
 export { availableNovelScenarios, createDefaultScenarioPack, createRecommendedNovelSummaries, createScenarioFromNovelTitle, mergeNovelSummaries, normalizeScenarioPack } from './scenario';
-export type { NovelScenarioOption, ScenarioPack } from './scenario';
+export type { NovelScenarioOption, ScenarioGenerationSeed, ScenarioPack } from './scenario';
 export { DEFAULT_THEME_ID, gameThemePresets, getGameThemePreset, inferThemeIdFromNovel, inferThemeIdFromSave, normalizeThemeId, normalizeThemeSource, themeIds } from './theme';
 export type { GameThemeId, GameThemePreset, GameThemeSource, ThemeSaveSummary } from './theme';
 export type { AIConfigForm, CharacterInfo, CharacterStats, ChatMessage, Choice, Difficulty, InventoryItem, InventoryViewItem, Role, Skill } from './types';

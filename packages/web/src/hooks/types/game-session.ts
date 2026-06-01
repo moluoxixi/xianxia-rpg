@@ -21,9 +21,10 @@ export interface GameSessionController {
   gameSaves: GameSaveSummary[];
   novels: NovelSummary[];
   sceneNpcs: NPC[];
-  hasReviveStone: boolean;
+  canRevive: boolean;
   isSearchingNovels: boolean;
   novelSearchMessage: string;
+  newGameMessage: string;
   setInput: Dispatch<SetStateAction<string>>;
   setSettingsOpen: Dispatch<SetStateAction<boolean>>;
   setInventoryOpen: Dispatch<SetStateAction<boolean>>;
@@ -42,7 +43,7 @@ export interface GameSessionController {
   loadGame: () => Promise<boolean>;
   loadGameByRunId: (runId: string) => Promise<boolean>;
   deleteGameSave: (runId: string) => Promise<boolean>;
-  startNewGame: (novelTitle?: string, difficulty?: Difficulty, themeId?: GameThemeId, themeSource?: GameThemeSource, gameTypeId?: GameTypeId) => Promise<boolean>;
+  startNewGame: (novelInput?: NovelSummary | string, difficulty?: Difficulty, themeId?: GameThemeId, themeSource?: GameThemeSource, gameTypeId?: GameTypeId) => Promise<boolean>;
   changeGameTheme: (themeId: GameThemeId) => void;
   resetGame: () => void;
   revivePlayer: () => void;

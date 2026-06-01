@@ -45,6 +45,21 @@ export interface HostLoadGameByRunIdPayload {
   runId: string;
 }
 
+export interface HostScenarioGeneratePayload {
+  referenceNovel: string;
+  author?: string;
+  description?: string;
+  difficulty: string;
+  gameTypeId: string;
+  themeId: string;
+}
+
+export interface HostScenarioGenerateResult {
+  success: boolean;
+  data?: unknown;
+  message?: string;
+}
+
 export interface HostDeleteGamePayload {
   runId: string;
 }
@@ -114,6 +129,7 @@ export type HostRequestPath
     | '/game/load'
     | '/game/delete'
     | '/game/latest'
+    | '/game/scenario/generate'
     | '/game/saves'
     | '/game/death-archives'
     | '/game/inventory-pins'
@@ -129,6 +145,8 @@ export interface GameHostClient {
   loadGame: () => Promise<HostLoadGameResult>;
   /** 按存档 ID 读取游戏快照。 */
   loadGameByRunId: (runId: string) => Promise<HostLoadGameResult>;
+  /** 使用 AI 根据参考小说生成初始场景、NPC、道具和开局指令。 */
+  generateScenario: (payload: HostScenarioGeneratePayload) => Promise<HostScenarioGenerateResult>;
   /** 删除指定游戏存档，若删除当前存档，前端应同步清空运行态。 */
   deleteGameSave: (runId: string) => Promise<HostDeleteGameResult>;
   /** 列出可读取的游戏存档。 */

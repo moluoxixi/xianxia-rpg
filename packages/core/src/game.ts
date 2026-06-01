@@ -18,7 +18,7 @@ export interface DifficultyConfig {
   canSave: boolean;
   /** 死亡后是否可以复活 */
   canRevive: boolean;
-  /** 复活消耗（简单模式：消耗灵石数量） */
+  /** 复活消耗，具体道具和数量由剧本规则决定。 */
   reviveCost?: number;
   /** 战斗伤害倍率 */
   damageMultiplier: number;
@@ -31,7 +31,7 @@ export const DIFFICULTY_PRESETS: Record<GameDifficulty, DifficultyConfig> = {
   normal: {
     difficulty: 'normal',
     name: '简单模式',
-    description: '可在安全区域存档，死亡后可消耗灵石复活',
+    description: '可存档，满足剧本复苏条件时允许继续',
     canSave: true,
     canRevive: true,
     reviveCost: 20,
@@ -41,7 +41,7 @@ export const DIFFICULTY_PRESETS: Record<GameDifficulty, DifficultyConfig> = {
   hard: {
     difficulty: 'hard',
     name: '困难模式',
-    description: '硬核修仙，死亡即永久结束，存档仅保留一个',
+    description: '硬核模式，失败即永久结束，存档仅保留一个',
     canSave: true,
     canRevive: false,
     damageMultiplier: 1.5,

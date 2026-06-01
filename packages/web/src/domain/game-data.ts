@@ -1,46 +1,24 @@
 import type { Scene } from '@xianxia-rpg/core';
 import type { GameState } from './game-state';
 import type { ChatMessage, InventoryItem, InventoryViewItem, Role, Skill } from './types';
-import { STARTER_SCENES } from '@xianxia-rpg/core';
 import { normalizeGameTypeId } from './game-type';
 import { createDefaultScenarioPack, normalizeScenarioPack } from './scenario';
 import type { ScenarioPack } from './scenario';
 import { normalizeThemeId, normalizeThemeSource } from './theme';
 
-export const pinnedItems = ['下品灵石', '黄龙丹', '长剑'];
+export const pinnedItems: string[] = [];
 
-export const itemDescriptions: Record<string, string> = {
-  黄龙丹: '恢复50点气血的初级丹药',
-  回灵丹: '恢复30点灵力的丹药',
-  筑基丹: '突破至筑基期所需的珍贵丹药',
-  结丹丸: '结丹期修士修炼辅助丹药',
-  下品灵石: '修仙界通用货币，可用于购买物品',
-  中品灵石: '等价100下品灵石，高阶交易货币',
-  上品灵石: '等价100中品灵石，极为珍贵',
-  长剑: '普通铁剑，攻击力+5',
-  飞剑: '法器级飞剑，可御剑飞行',
-  护身符: '一次性防御道具，抵挡一次致命攻击',
-  储物袋: '可存储物品的空间法器',
-  灵草: '炼丹基础材料',
-  铁精: '炼器基础材料',
-  妖兽内丹: '妖兽体内的精华结晶，炼丹珍贵材料',
-};
+export const itemDescriptions: Record<string, string> = {};
 
-export const itemIcons: Record<string, string> = {
-  黄龙丹: '丹',
-  回灵丹: '丹',
-  筑基丹: '筑',
-  结丹丸: '结',
-  下品灵石: '石',
-  中品灵石: '石',
-  上品灵石: '石',
-  长剑: '剑',
-  飞剑: '剑',
-  护身符: '符',
-  储物袋: '袋',
-  灵草: '草',
-  铁精: '矿',
-  妖兽内丹: '丹',
+export const itemTypeIcons: Record<NonNullable<InventoryItem['type']>, string> = {
+  pill: '药',
+  spirit_stone: '币',
+  weapon: '武',
+  material: '材',
+  talisman: '符',
+  manual: '书',
+  quest: '任',
+  misc: '物',
 };
 
 export const cultivationRealms = [
@@ -171,8 +149,8 @@ export function createMessage(role: Role, content: string): ChatMessage {
   return { id: crypto.randomUUID(), role, content, time: getTimeStr() };
 }
 
-export function getItemIcon(name: string): string {
-  return itemIcons[name] ?? '物';
+export function getItemIcon(item: Pick<InventoryItem, 'name' | 'type'>): string {
+  return item.type ? itemTypeIcons[item.type] : item.name[0] ?? '物';
 }
 
 export function getInventoryItemKey(item: InventoryItem): string {
@@ -209,7 +187,7 @@ export function createGameStateFromScenario(scenario: ScenarioPack): GameState {
     isDead: false,
     currentScene: scenario.initialSceneName,
     scenes: createScenarioScenes(scenario),
-    npcs: {},
+    npcs: createScenarioNpcs(scenario),
     defeatedNpcs: [],
   };
 }
@@ -223,8 +201,8 @@ export function cloneScenarioInitialState(scenario: ScenarioPack): GameState {
 }
 
 export function getDefaultQuickActions(gameState: GameState): string[] {
-  const scene = getEffectiveScene(gameState.currentScene, gameState.scenes[gameState.currentScene]);
-  const actions = getSceneSpecificActions(gameState.currentScene);
+  const scene = gameState.scenes[gameState.currentScene];
+  const actions = getSceneSpecificActions();
 
   if (scene?.connectedScenes.length) {
     actions.push(...scene.connectedScenes.slice(0, 4).map(name => `前往${name}`));
@@ -244,22 +222,7 @@ export function mergeQuickActions(gameState: GameState, aiActions: string[]): st
   return Array.from(new Set([...aiActions, ...getDefaultQuickActions(gameState)])).slice(0, 8);
 }
 
-function getEffectiveScene(sceneName: string, scene: Scene | undefined): Scene | undefined {
-  const starterScene = STARTER_SCENES[sceneName];
-  if (starterScene && scene)
-    return mergeScene(starterScene, scene);
-  return scene ?? starterScene;
-}
-
-function getSceneSpecificActions(sceneName: string): string[] {
-  if (sceneName === '练功房')
-    return ['修炼长春功', '演练基础剑术', '调息恢复', '查看状态'];
-  if (sceneName === '后山')
-    return ['采集灵草', '探查山林', '寻找妖兽踪迹', '返回居所'];
-  if (sceneName === '丹药房')
-    return ['兑换丹药', '询问药价', '服用黄龙丹', '返回居所'];
-  if (sceneName === '藏经阁')
-    return ['查阅功法', '寻找游记', '研究地图', '返回居所'];
+function getSceneSpecificActions(): string[] {
   return ['观察四周', '整理背包', '查看状态', '外出历练'];
 }
 
@@ -295,31 +258,24 @@ function createInitialStats(realm: string): GameState['stats'] {
     maxHp: Math.max(80, 80 + realmLevel * 20),
     mp: Math.max(80, 80 + realmLevel * 24),
     maxMp: Math.max(100, 80 + realmLevel * 24),
-    exp: realm === '凡人' ? 0 : 10,
+    exp: realmLevel <= 0 ? 0 : 10,
     maxExp: getRealmMaxExp(realm),
   };
 }
 
 function createScenarioInventory(scenario: ScenarioPack): InventoryItem[] {
-  if (scenario.id === 'fanren-xiuxian') {
-    return [
-      { id: 'item_huanglongdan', name: '黄龙丹', count: 3, type: 'pill', rarity: 'low', usable: true, description: itemDescriptions.黄龙丹 },
-      { id: 'item_low_spirit_stone', name: '下品灵石', count: 50, type: 'spirit_stone', rarity: 'low', description: itemDescriptions.下品灵石 },
-      { id: 'item_iron_sword', name: '长剑', count: 1, type: 'weapon', rarity: 'common', usable: true, description: itemDescriptions.长剑 },
-    ];
-  }
+  if (scenario.initialInventory?.length)
+    return structuredClone(scenario.initialInventory);
+
   return [
     { id: 'item_travel_pack', name: '随身行囊', count: 1, type: 'misc', rarity: 'common', description: '进入新剧本时随身携带的基础物品。' },
   ];
 }
 
 function createScenarioSkills(scenario: ScenarioPack): Skill[] {
-  if (scenario.id === 'fanren-xiuxian') {
-    return [
-      { id: 'skill_changchun', name: '长春功', level: '入门', type: 'main', proficiency: 0, source: '七玄门' },
-      { id: 'skill_basic_sword', name: '基础剑术', level: '熟练', type: 'combat', proficiency: 20, source: '七玄门' },
-    ];
-  }
+  if (scenario.initialSkills?.length)
+    return structuredClone(scenario.initialSkills);
+
   return [];
 }
 
@@ -329,6 +285,14 @@ function createScenarioScenes(scenario: ScenarioPack): Record<string, Scene> {
     scenes[name] = structuredClone(scene);
   }
   return scenes;
+}
+
+function createScenarioNpcs(scenario: ScenarioPack): GameState['npcs'] {
+  const npcs: GameState['npcs'] = {};
+  for (const npc of scenario.initialNpcs ?? []) {
+    npcs[npc.id] = structuredClone(npc);
+  }
+  return npcs;
 }
 
 function mergeLoadedScenes(fallbackScenes: Record<string, Scene>, loadedScenes: unknown): Record<string, Scene> {

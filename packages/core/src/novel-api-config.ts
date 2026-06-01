@@ -1,4 +1,4 @@
-export type NovelApiProvider = 'disabled' | 'compatible' | 'custom-functions';
+export type NovelApiProvider = 'disabled' | 'compatible' | 'custom-functions' | 'ai';
 
 export interface NovelApiSettingsPreset {
   novelApiProvider: NovelApiProvider;
@@ -8,15 +8,13 @@ export interface NovelApiSettingsPreset {
   novelApiMapResponseCode: string;
 }
 
-export const defaultNovelApiProvider: NovelApiProvider = 'custom-functions';
+export const defaultNovelApiProvider: NovelApiProvider = 'ai';
 export const defaultNovelApiBaseURL = 'https://openlibrary.org';
 export const defaultNovelApiKey = '';
 
-// Open Library 搜索接口作为默认野外小说来源，保持无 API Key 的试玩闭环。
+// Open Library 仍作为可配置函数适配示例；默认搜索改由 AI 生成中文小说候选。
 export const defaultNovelApiBuildRequestCode = `({ baseURL, keyword }) => {
-  const openLibraryKeyword = keyword && !keyword.includes('?') && [...keyword].every(character => character.charCodeAt(0) < 128)
-    ? keyword
-    : 'fiction fantasy adventure';
+  const openLibraryKeyword = keyword || 'fiction fantasy adventure';
 
   return {
     url: baseURL + '/search.json?q=' + encodeURIComponent(openLibraryKeyword) + '&limit=12&fields=key,title,author_name,first_publish_year,subject',
@@ -53,7 +51,7 @@ export function createDefaultNovelApiSettings(): NovelApiSettingsPreset {
 export function normalizeNovelApiProvider(value: unknown): NovelApiProvider {
   if (value === 'biquge-compatible' || value === 'custom')
     return 'compatible';
-  if (value === 'disabled' || value === 'compatible' || value === 'custom-functions')
+  if (value === 'disabled' || value === 'compatible' || value === 'custom-functions' || value === 'ai')
     return value;
   return defaultNovelApiProvider;
 }

@@ -1,4 +1,4 @@
-import type { HostDeleteGamePayload, HostInventoryPinsLoadPayload, HostInventoryPinsPayload, HostLoadGameByRunIdPayload } from '@xianxia-rpg/core';
+import type { HostDeleteGamePayload, HostInventoryPinsLoadPayload, HostInventoryPinsPayload, HostLoadGameByRunIdPayload, HostScenarioGeneratePayload, HostScenarioGenerateResult } from '@xianxia-rpg/core';
 import { Body, Controller, Get, Inject, Post } from '@nestjs/common';
 import { GameApiService } from './game-api.service';
 
@@ -19,6 +19,11 @@ export class GameController {
   @Post('load')
   loadGameByRunId(@Body() payload: HostLoadGameByRunIdPayload): Promise<{ success: boolean; data: unknown }> {
     return this.gameApi.loadGameByRunId(payload.runId);
+  }
+
+  @Post('scenario/generate')
+  generateScenario(@Body() payload: HostScenarioGeneratePayload): Promise<HostScenarioGenerateResult> {
+    return this.gameApi.generateScenario(payload);
   }
 
   @Get('saves')

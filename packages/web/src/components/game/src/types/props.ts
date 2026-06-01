@@ -5,6 +5,8 @@ import type { AIConfigForm, ChatMessage, Choice, Difficulty, GameState, GameThem
 export interface AppHeaderProps {
   difficulty: Difficulty;
   themeId: GameThemeId;
+  title: string;
+  subtitle: string;
   onOpenMenu: () => void;
   onOpenSettings: () => void;
   onSave: () => void;
@@ -98,9 +100,10 @@ export interface MainMenuProps {
   loading: boolean;
   searchingNovels: boolean;
   message: string;
+  newGameMessage: string;
   novelSearchMessage: string;
   activeThemeId: GameThemeId;
-  onNewGame: (novelTitle: string, themeId: GameThemeId, themeSource: GameThemeSource, gameTypeId: GameTypeId) => void;
+  onNewGame: (novel: NovelSummary, themeId: GameThemeId, themeSource: GameThemeSource, gameTypeId: GameTypeId) => Promise<boolean>;
   onContinueGame: () => void;
   onDeleteSave: (runId: string) => Promise<boolean>;
   onLoadSave: (runId: string) => void;

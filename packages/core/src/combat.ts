@@ -8,7 +8,7 @@ export interface CombatRound {
   attacker: string; // 攻击方名称
   defender: string; // 防守方名称
   damage: number; // 造成伤害
-  remainingHp: number; // 防守方剩余气血
+  remainingHp: number; // 防守方剩余生命值
   isCritical: boolean; // 是否暴击
 }
 
@@ -18,8 +18,8 @@ export interface CombatLog {
   opponent: string; // 对手名称
   rounds: CombatRound[]; // 回合记录
   result: CombatResult; // 战斗结果
-  playerHp: number; // 玩家剩余气血
-  opponentHp: number; // 对手剩余气血
+  playerHp: number; // 玩家剩余生命值
+  opponentHp: number; // 对手剩余生命值
   loot: Array<{ name: string; count: number }>; // 获得战利品
   expGained: number; // 获得经验
 }
@@ -78,7 +78,7 @@ export function resolveCombat(
       }
       expGained = expReward ?? 0;
       return {
-        player: '韩立',
+        player: '你',
         opponent: '对手',
         rounds,
         result: 'win',
@@ -104,7 +104,7 @@ export function resolveCombat(
 
     if (currentPlayerHp <= 0) {
       return {
-        player: '韩立',
+        player: '你',
         opponent: '对手',
         rounds,
         result: 'lose',
@@ -118,7 +118,7 @@ export function resolveCombat(
 
   // 超过回合上限，判定为平局逃跑
   return {
-    player: '韩立',
+    player: '你',
     opponent: '对手',
     rounds,
     result: 'flee',

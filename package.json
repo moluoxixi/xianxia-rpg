@@ -1,7 +1,7 @@
 {
   "name": "xianxia-rpg",
   "version": "0.1.0",
-  "description": "凡人修仙传 - AI文字对话角色扮演游戏",
+  "description": "半开放式 AI 文字冒险角色扮演游戏",
   "packageManager": "pnpm@10.29.3",
   "main": "dist/main/main.js",
   "scripts": {

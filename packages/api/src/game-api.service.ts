@@ -1,4 +1,4 @@
-import type { HostInventoryPinsPayload, HostMessagePayload, HostNovelSearchResult, HostSettingsPayload, NovelSearchPayload } from '@xianxia-rpg/core';
+import type { HostInventoryPinsPayload, HostMessagePayload, HostNovelSearchResult, HostScenarioGeneratePayload, HostScenarioGenerateResult, HostSettingsPayload, NovelSearchPayload } from '@xianxia-rpg/core';
 import type { OnModuleInit } from '@nestjs/common';
 import path from 'node:path';
 import { Injectable } from '@nestjs/common';
@@ -9,8 +9,10 @@ import { chatWithAI } from './ai';
 import { createDefaultAIConfig } from './default-ai-config';
 import type { RuntimeAIConfig } from './default-ai-config';
 import { GameDatabase } from './infrastructure/database';
+import { searchNovelsWithAI } from './ai-novel-search';
 import { searchRemoteNovels } from './novel-search';
 import type { NovelApiSettings } from './novel-search';
+import { generateScenarioWithAI } from './scenario-generation';
 
 @Injectable()
 export class GameApiService implements OnModuleInit {
@@ -77,12 +79,18 @@ export class GameApiService implements OnModuleInit {
   async searchNovels(payload: NovelSearchPayload): Promise<HostNovelSearchResult> {
     await this.database.init();
     const storedConfig = this.database.loadAIConfig();
-    const novelApiSettings = { ...createDefaultNovelApiSettings(), ...storedConfig };
+    const novelApiSettings = createRuntimeNovelApiSettings(storedConfig);
     const provider = normalizeNovelApiProvider(novelApiSettings.novelApiProvider);
+    if (provider === 'ai')
+      return searchNovelsWithAI(this.aiConfig, payload.keyword);
     if (provider === 'compatible' || provider === 'custom-functions')
       return searchRemoteNovels({ ...novelApiSettings, novelApiProvider: provider } as NovelApiSettings, payload.keyword);
 
     return { success: false, data: [], message: '小说 API 未启用，请先在设置中配置小说来源。' };
+  }
+
+  async generateScenario(payload: HostScenarioGeneratePayload): Promise<HostScenarioGenerateResult> {
+    return generateScenarioWithAI(this.aiConfig, payload);
   }
 
   async sendMessage(payload: HostMessagePayload): Promise<{ success: boolean; reply: string; error?: string }> {
@@ -121,7 +129,7 @@ export class GameApiService implements OnModuleInit {
     await this.database.init();
     const storedConfig = this.database.loadAIConfig();
     const runtimeConfig = storedConfig ? normalizeRuntimeAIConfig(this.aiConfig, storedConfig) : this.aiConfig;
-    return { success: true, data: { ...createDefaultNovelApiSettings(), ...runtimeConfig } };
+    return { success: true, data: { ...runtimeConfig, ...createRuntimeNovelApiSettings(storedConfig) } };
   }
 
   async testAIConnection(testConfig: Record<string, unknown>): Promise<{ success: boolean; reply?: string; error?: string }> {
@@ -175,6 +183,22 @@ function normalizeRuntimeAIConfig(baseConfig: RuntimeAIConfig, patch: HostSettin
     providerApiKeys,
     providerBaseURLs,
   } as RuntimeAIConfig;
+}
+
+function createRuntimeNovelApiSettings(storedConfig: HostSettingsPayload | null): ReturnType<typeof createDefaultNovelApiSettings> {
+  const defaults = createDefaultNovelApiSettings();
+  const settings = { ...defaults, ...storedConfig };
+  const isLegacyOpenLibraryDefault = settings.novelApiProvider === 'custom-functions'
+    && settings.novelApiBaseURL === defaults.novelApiBaseURL
+    && String(settings.novelApiBuildRequestCode ?? '').includes('character.charCodeAt');
+
+  return {
+    novelApiProvider: isLegacyOpenLibraryDefault ? 'ai' : normalizeNovelApiProvider(settings.novelApiProvider),
+    novelApiBaseURL: String(settings.novelApiBaseURL ?? defaults.novelApiBaseURL),
+    novelApiKey: String(settings.novelApiKey ?? defaults.novelApiKey),
+    novelApiBuildRequestCode: String(settings.novelApiBuildRequestCode ?? defaults.novelApiBuildRequestCode),
+    novelApiMapResponseCode: String(settings.novelApiMapResponseCode ?? defaults.novelApiMapResponseCode),
+  };
 }
 
 function normalizeProviderBaseURL(type: RuntimeAIConfig['type'], value: string | undefined, fallback: string, hasStoredProviderBaseURLs: boolean): string {

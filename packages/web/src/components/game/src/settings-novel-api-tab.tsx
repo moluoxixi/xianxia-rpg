@@ -14,6 +14,7 @@ interface SettingsNovelApiTabProps {
 }
 
 const novelApiProviderOptions: SelectOption<NovelApiProvider>[] = [
+  { label: 'AI 小说识别', value: 'ai' },
   { label: '暂不启用', value: 'disabled' },
   { label: '兼容协议 Base URL', value: 'compatible' },
   { label: 'Open Library 函数适配', value: 'custom-functions' },
@@ -38,7 +39,7 @@ export function SettingsNovelApiTab({ config, onConfigChange }: SettingsNovelApi
           {novelApiProviderOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
         </Select>
       </Field>
-      {config.novelApiProvider !== 'disabled'
+      {requiresRemoteNovelApiSettings(config.novelApiProvider)
         ? (
             <>
               <Field label="小说 API Base URL">
@@ -65,6 +66,10 @@ export function SettingsNovelApiTab({ config, onConfigChange }: SettingsNovelApi
         : null}
     </div>
   );
+}
+
+function requiresRemoteNovelApiSettings(provider: NovelApiProvider): boolean {
+  return provider === 'compatible' || provider === 'custom-functions';
 }
 
 function Field({ label, children }: { label: string; children: ReactNode }) {

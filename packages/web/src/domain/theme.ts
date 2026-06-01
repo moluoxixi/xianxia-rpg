@@ -110,8 +110,5 @@ export function inferThemeIdFromNovel(novelTitle: string, description = ''): Gam
 }
 
 export function inferThemeIdFromSave(save: ThemeSaveSummary): GameThemeId {
-  if (save.themeId)
-    return normalizeThemeId(save.themeId);
-
-  return inferThemeIdFromNovel(save.referenceNovel ?? save.currentScene, `${save.realm}${save.currentScene}`);
+  return normalizeThemeId(save.themeId);
 }

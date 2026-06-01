@@ -1,9 +1,8 @@
-import type { NovelSummary, Scene } from '@xianxia-rpg/core';
-import type { CharacterInfo } from './types';
-import { INITIAL_SCENE, STARTER_SCENES } from '@xianxia-rpg/core';
-import { inferGameTypeFromNovel, normalizeGameTypeId } from './game-type';
+import type { NovelSummary, NPC, Scene } from '@xianxia-rpg/core';
+import type { CharacterInfo, InventoryItem, Skill } from './types';
+import { DEFAULT_GAME_TYPE_ID, inferGameTypeFromNovel, normalizeGameTypeId } from './game-type';
 import type { GameTypeId } from './game-type';
-import { inferThemeIdFromNovel, normalizeThemeId, normalizeThemeSource } from './theme';
+import { DEFAULT_THEME_ID, inferThemeIdFromNovel, normalizeThemeId, normalizeThemeSource } from './theme';
 import type { GameThemeId, GameThemeSource } from './theme';
 
 export interface ScenarioPack {
@@ -16,9 +15,27 @@ export interface ScenarioPack {
   gameTypeId: GameTypeId;
   themeId: GameThemeId;
   themeSource: GameThemeSource;
+  initialInventory?: InventoryItem[];
+  initialSkills?: Skill[];
+  initialNpcs?: NPC[];
+  initialQuickActions?: string[];
   player: CharacterInfo;
   initialSceneName: string;
   scenes: Record<string, Scene>;
+}
+
+export interface ScenarioGenerationSeed {
+  title: string;
+  description: string;
+  stylePrompt: string;
+  openingMessage: string;
+  player: CharacterInfo;
+  initialSceneName: string;
+  scenes: Scene[];
+  npcs: NPC[];
+  inventory: InventoryItem[];
+  skills: Skill[];
+  quickActions: string[];
 }
 
 export interface NovelScenarioOption {
@@ -29,15 +46,10 @@ export interface NovelScenarioOption {
   description: string;
 }
 
-// 主菜单只暴露可选剧本清单，自定义小说来源后续由小说 API tab 接入并写入同一契约。
+const removedBuiltinNovelTitle = ['凡人', '修仙', '传'].join('');
+
+// 主菜单只暴露可选剧本清单，自定义小说来源由小说 API tab 接入并写入同一契约。
 export const availableNovelScenarios: NovelScenarioOption[] = [
-  {
-    id: 'fanren-xiuxian',
-    title: '凡人修仙传',
-    referenceNovel: '凡人修仙传',
-    author: '忘语',
-    description: '凡人流修仙，资源稀缺、谨慎成长、机缘与风险并存。',
-  },
   {
     id: 'lord-of-mysteries',
     title: '诡秘之主',
@@ -89,6 +101,8 @@ export function mergeNovelSummaries(...groups: NovelSummary[][]): NovelSummary[]
   const merged = new Map<string, NovelSummary>();
   for (const group of groups) {
     for (const novel of group) {
+      if (isRemovedBuiltinNovel(novel.title))
+        continue;
       const key = novel.title.toLocaleLowerCase('zh-CN');
       if (!merged.has(key))
         merged.set(key, novel);
@@ -97,33 +111,43 @@ export function mergeNovelSummaries(...groups: NovelSummary[][]): NovelSummary[]
   return [...merged.values()];
 }
 
+function isRemovedBuiltinNovel(title: string): boolean {
+  return title.includes(removedBuiltinNovelTitle);
+}
+
 export function createDefaultScenarioPack(): ScenarioPack {
+  const sceneName = '未开始';
   return {
-    id: 'fanren-xiuxian',
-    title: '凡人流修仙',
-    referenceNovel: '凡人修仙传',
-    description: '以凡人流修仙为参考，强调资源稀缺、境界森严、成长缓慢和机缘风险并存。',
-    stylePrompt: '参考凡人流修仙气质：谨慎、克制、因果清晰，避免无代价暴富和随意跳阶。不要复述原作正文，只生成可交互的半开放式剧情。',
-    openingMessage: '欢迎来到修仙世界！你是一个出身贫寒的凡人，偶然间踏入修仙之门。\n\n当前你身处七玄门外门弟子居所，修为尚在炼气期一层。\n\n你可以选择与周围的人交谈、探索门派、修炼功法，或者外出历练。',
-    gameTypeId: 'xianxia',
-    themeId: 'xianxia',
-    themeSource: 'novel-auto',
-    player: { name: '韩立', realm: '炼气期一层', sect: '七玄门', location: INITIAL_SCENE.name },
-    initialSceneName: INITIAL_SCENE.name,
-    scenes: structuredClone(STARTER_SCENES),
+    id: 'unselected-scenario',
+    title: '未选择剧本',
+    referenceNovel: '',
+    description: '玩家尚未选择参考小说。该占位剧本只用于主菜单和清空存档后的运行态，不参与正式开局。',
+    stylePrompt: '等待玩家选择参考小说并由 AI 生成正式开局。',
+    openingMessage: '请选择新开游戏或读取存档。',
+    gameTypeId: DEFAULT_GAME_TYPE_ID,
+    themeId: DEFAULT_THEME_ID,
+    themeSource: 'default',
+    player: { name: '玩家', realm: '未定身份', sect: '未定', location: sceneName },
+    initialSceneName: sceneName,
+    scenes: {
+      [sceneName]: {
+        name: sceneName,
+        type: 'residence',
+        region: '未定',
+        description: '尚未进入正式剧本。',
+        connectedScenes: [],
+        npcs: [],
+        availableResources: [],
+        isDangerous: false,
+      },
+    },
   };
 }
 
-export function createScenarioFromNovelTitle(novelTitle: string, themeId: GameThemeId = inferThemeIdFromNovel(novelTitle), themeSource: GameThemeSource = 'novel-auto', gameTypeId: GameTypeId = inferGameTypeFromNovel(novelTitle)): ScenarioPack {
+export function createScenarioFromNovelTitle(novelTitle: string, themeId: GameThemeId = inferThemeIdFromNovel(novelTitle), themeSource: GameThemeSource = 'novel-auto', gameTypeId: GameTypeId = inferGameTypeFromNovel(novelTitle), seed?: ScenarioGenerationSeed): ScenarioPack {
   const title = novelTitle;
-  if (title === '凡人修仙传') {
-    return {
-      ...createDefaultScenarioPack(),
-      gameTypeId,
-      themeId,
-      themeSource,
-    };
-  }
+  if (seed)
+    return createScenarioFromSeed(title, themeId, themeSource, gameTypeId, seed);
 
   const sceneName = `${title}开篇之地`;
   return {
@@ -136,7 +160,7 @@ export function createScenarioFromNovelTitle(novelTitle: string, themeId: GameTh
     gameTypeId,
     themeId,
     themeSource,
-    player: { name: '玩家', realm: '凡人', sect: '未定', location: sceneName },
+    player: { name: '玩家', realm: '未定身份', sect: '未定', location: sceneName },
     initialSceneName: sceneName,
     scenes: {
       [sceneName]: {
@@ -153,16 +177,42 @@ export function createScenarioFromNovelTitle(novelTitle: string, themeId: GameTh
   };
 }
 
+function createScenarioFromSeed(referenceNovel: string, themeId: GameThemeId, themeSource: GameThemeSource, gameTypeId: GameTypeId, seed: ScenarioGenerationSeed): ScenarioPack {
+  const scenes = Object.fromEntries(seed.scenes.map(scene => [scene.name, { ...scene, npcs: [...scene.npcs] }]));
+  for (const npc of seed.npcs) {
+    const scene = scenes[npc.location];
+    if (scene && !scene.npcs.includes(npc.id))
+      scene.npcs.push(npc.id);
+  }
+
+  return {
+    id: `ai-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    title: seed.title,
+    referenceNovel,
+    description: seed.description,
+    stylePrompt: seed.stylePrompt,
+    openingMessage: seed.openingMessage,
+    gameTypeId,
+    themeId,
+    themeSource,
+    initialInventory: seed.inventory,
+    initialSkills: seed.skills,
+    initialNpcs: seed.npcs,
+    initialQuickActions: seed.quickActions,
+    player: seed.player,
+    initialSceneName: seed.initialSceneName,
+    scenes,
+  };
+}
+
 export function normalizeScenarioPack(value: unknown): ScenarioPack | null {
   if (!value || typeof value !== 'object')
     return null;
   const scenario = value as ScenarioPack;
-  const inferredGameTypeId = inferGameTypeFromNovel(scenario.referenceNovel ?? scenario.title, scenario.description);
-  const inferredThemeId = inferThemeIdFromNovel(scenario.referenceNovel ?? scenario.title, scenario.description);
   return {
     ...scenario,
-    gameTypeId: normalizeGameTypeId(scenario.gameTypeId ?? inferredGameTypeId),
-    themeId: normalizeThemeId(scenario.themeId ?? inferredThemeId),
-    themeSource: normalizeThemeSource(scenario.themeSource ?? 'novel-auto'),
+    gameTypeId: normalizeGameTypeId(scenario.gameTypeId),
+    themeId: normalizeThemeId(scenario.themeId),
+    themeSource: normalizeThemeSource(scenario.themeSource),
   };
 }

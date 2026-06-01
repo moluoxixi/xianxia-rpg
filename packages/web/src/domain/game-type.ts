@@ -16,6 +16,21 @@ export interface GameTypePreset {
   label: string;
   promptLabel: string;
   tone: string;
+  ui: GameTypeUiPreset;
+}
+
+export interface GameTypeUiPreset {
+  rankLabel: string;
+  nextRankLabel: string;
+  factionLabel: string;
+  statLabels: {
+    hp: string;
+    mp: string;
+    exp: string;
+  };
+  abilitiesTitle: string;
+  abilityItemLabel: string;
+  emptyAbilitiesText: string;
 }
 
 export const DEFAULT_GAME_TYPE_ID: GameTypeId = 'otome';
@@ -27,48 +42,120 @@ export const gameTypePresets: Record<GameTypeId, GameTypePreset> = {
     label: '日系乙女',
     promptLabel: '乙女恋爱/二次元',
     tone: '柔和、细腻、关系驱动',
+    ui: {
+      rankLabel: '身份',
+      nextRankLabel: '下一关系阶段',
+      factionLabel: '关系圈',
+      statLabels: { hp: '状态', mp: '心绪', exp: '剧情进度' },
+      abilitiesTitle: '特质',
+      abilityItemLabel: '特质',
+      emptyAbilitiesText: '暂无已记录特质',
+    },
   },
   xianxia: {
     id: 'xianxia',
     label: '古风仙侠',
     promptLabel: '修仙/玄幻/武侠',
     tone: '境界成长、门派势力、机缘风险',
+    ui: {
+      rankLabel: '境界',
+      nextRankLabel: '下一境界',
+      factionLabel: '门派',
+      statLabels: { hp: '气血', mp: '灵力', exp: '修为' },
+      abilitiesTitle: '功法',
+      abilityItemLabel: '功法',
+      emptyAbilitiesText: '暂无已记录功法',
+    },
   },
   campus: {
     id: 'campus',
     label: '校园清新',
     promptLabel: '校园青春',
     tone: '日常关系、成长选择、轻快事件',
+    ui: {
+      rankLabel: '身份',
+      nextRankLabel: '下一成长阶段',
+      factionLabel: '班级/社团',
+      statLabels: { hp: '体力', mp: '心情', exp: '成长值' },
+      abilitiesTitle: '特长',
+      abilityItemLabel: '特长',
+      emptyAbilitiesText: '暂无已记录特长',
+    },
   },
   urban: {
     id: 'urban',
     label: '现代都市',
     promptLabel: '现代都市',
     tone: '现实规则、职场社交、资源博弈',
+    ui: {
+      rankLabel: '身份',
+      nextRankLabel: '下一阶段',
+      factionLabel: '所属',
+      statLabels: { hp: '精力', mp: '资源', exp: '进展' },
+      abilitiesTitle: '能力',
+      abilityItemLabel: '能力',
+      emptyAbilitiesText: '暂无已记录能力',
+    },
   },
   suspense: {
     id: 'suspense',
     label: '悬疑灵异',
     promptLabel: '悬疑/灵异/神秘学',
     tone: '线索推进、风险递增、克制揭露',
+    ui: {
+      rankLabel: '身份',
+      nextRankLabel: '下一线索阶段',
+      factionLabel: '组织/阵营',
+      statLabels: { hp: '体能', mp: '理智', exp: '线索推进' },
+      abilitiesTitle: '线索能力',
+      abilityItemLabel: '能力',
+      emptyAbilitiesText: '暂无已记录线索能力',
+    },
   },
   cyberpunk: {
     id: 'cyberpunk',
     label: '科幻赛博',
     promptLabel: '科幻/赛博朋克',
     tone: '技术系统、城市网络、未来冲突',
+    ui: {
+      rankLabel: '身份',
+      nextRankLabel: '下一同步阶段',
+      factionLabel: '阵营',
+      statLabels: { hp: '机体完整度', mp: '能量', exp: '同步率' },
+      abilitiesTitle: '模组',
+      abilityItemLabel: '模组',
+      emptyAbilitiesText: '暂无已记录模组',
+    },
   },
   fantasy: {
     id: 'fantasy',
     label: '西方魔幻',
     promptLabel: '西方魔幻',
     tone: '魔法、骑士、种族势力与冒险',
+    ui: {
+      rankLabel: '位阶',
+      nextRankLabel: '下一位阶',
+      factionLabel: '阵营',
+      statLabels: { hp: '生命', mp: '魔力', exp: '历练' },
+      abilitiesTitle: '技能',
+      abilityItemLabel: '技能',
+      emptyAbilitiesText: '暂无已记录技能',
+    },
   },
   minguo: {
     id: 'minguo',
     label: '民国复古',
     promptLabel: '民国/年代/谍战',
     tone: '旧时代关系、身份隐秘、时代压力',
+    ui: {
+      rankLabel: '身份',
+      nextRankLabel: '下一阶段',
+      factionLabel: '组织',
+      statLabels: { hp: '状态', mp: '人脉', exp: '进展' },
+      abilitiesTitle: '技艺',
+      abilityItemLabel: '技艺',
+      emptyAbilitiesText: '暂无已记录技艺',
+    },
   },
 };
 
