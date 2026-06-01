@@ -5,6 +5,7 @@ import { BookOpen, Check, ChevronsUpDown, Clock3, FolderOpen, Loader2, Palette, 
 import { useEffect, useState } from 'react';
 import { Button, Card, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Input, Popover, PopoverClose, PopoverContent, PopoverTrigger, Select, buttonVariants } from '@/components/ui';
 import { DEFAULT_GAME_TYPE_ID, gameThemePresets, getGameThemePreset, getGameTypePreset, inferGameTypeFromNovel, inferThemeIdFromNovel, inferThemeIdFromSave, normalizeGameTypeId, themeIds } from '@/domain';
+import { useDebouncedValue } from '@/hooks';
 import { cn } from '@/lib/utils';
 import { isSameNovelSelection, resolveMenuSelectedNovel } from './main-menu-novel-selection';
 
@@ -33,6 +34,7 @@ export function MainMenu({
   const [saveFilter, setSaveFilter] = useState('');
   const [selectedNovelSnapshot, setSelectedNovelSnapshot] = useState<NovelSummary | null>(null);
   const [manualThemeId, setManualThemeId] = useState<GameThemeId | null>(null);
+  const debouncedNovelFilter = useDebouncedValue(novelFilter, 320);
   const latestSave = saves[0];
   const visibleNovels = novels.filter(novel => matchesNovelFilter(novel, novelFilter));
   const selectedNovel = resolveMenuSelectedNovel({ novels, visibleNovels, selectedNovel: selectedNovelSnapshot });
@@ -48,11 +50,9 @@ export function MainMenu({
     if (!newGameOpen)
       return undefined;
 
-    const timer = window.setTimeout(() => {
-      void onSearchNovels(novelFilter);
-    }, 320);
-    return () => window.clearTimeout(timer);
-  }, [newGameOpen, novelFilter, onSearchNovels]);
+    void onSearchNovels(debouncedNovelFilter);
+    return undefined;
+  }, [debouncedNovelFilter, newGameOpen, onSearchNovels]);
 
   function selectNovel(novel: NovelSummary): void {
     setSelectedNovelSnapshot(novel);
