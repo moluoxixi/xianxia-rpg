@@ -23,11 +23,6 @@ export interface GameTypeUiPreset {
   rankLabel: string;
   nextRankLabel: string;
   factionLabel: string;
-  statLabels: {
-    hp: string;
-    mp: string;
-    exp: string;
-  };
   abilitiesTitle: string;
   abilityItemLabel: string;
   emptyAbilitiesText: string;
@@ -46,7 +41,6 @@ export const gameTypePresets: Record<GameTypeId, GameTypePreset> = {
       rankLabel: '身份',
       nextRankLabel: '下一关系阶段',
       factionLabel: '关系圈',
-      statLabels: { hp: '状态', mp: '心绪', exp: '剧情进度' },
       abilitiesTitle: '特质',
       abilityItemLabel: '特质',
       emptyAbilitiesText: '暂无已记录特质',
@@ -61,7 +55,6 @@ export const gameTypePresets: Record<GameTypeId, GameTypePreset> = {
       rankLabel: '境界',
       nextRankLabel: '下一境界',
       factionLabel: '门派',
-      statLabels: { hp: '气血', mp: '灵力', exp: '修为' },
       abilitiesTitle: '功法',
       abilityItemLabel: '功法',
       emptyAbilitiesText: '暂无已记录功法',
@@ -76,7 +69,6 @@ export const gameTypePresets: Record<GameTypeId, GameTypePreset> = {
       rankLabel: '身份',
       nextRankLabel: '下一成长阶段',
       factionLabel: '班级/社团',
-      statLabels: { hp: '体力', mp: '心情', exp: '成长值' },
       abilitiesTitle: '特长',
       abilityItemLabel: '特长',
       emptyAbilitiesText: '暂无已记录特长',
@@ -91,7 +83,6 @@ export const gameTypePresets: Record<GameTypeId, GameTypePreset> = {
       rankLabel: '身份',
       nextRankLabel: '下一阶段',
       factionLabel: '所属',
-      statLabels: { hp: '精力', mp: '资源', exp: '进展' },
       abilitiesTitle: '能力',
       abilityItemLabel: '能力',
       emptyAbilitiesText: '暂无已记录能力',
@@ -106,7 +97,6 @@ export const gameTypePresets: Record<GameTypeId, GameTypePreset> = {
       rankLabel: '身份',
       nextRankLabel: '下一线索阶段',
       factionLabel: '组织/阵营',
-      statLabels: { hp: '体能', mp: '理智', exp: '线索推进' },
       abilitiesTitle: '线索能力',
       abilityItemLabel: '能力',
       emptyAbilitiesText: '暂无已记录线索能力',
@@ -121,7 +111,6 @@ export const gameTypePresets: Record<GameTypeId, GameTypePreset> = {
       rankLabel: '身份',
       nextRankLabel: '下一同步阶段',
       factionLabel: '阵营',
-      statLabels: { hp: '机体完整度', mp: '能量', exp: '同步率' },
       abilitiesTitle: '模组',
       abilityItemLabel: '模组',
       emptyAbilitiesText: '暂无已记录模组',
@@ -136,7 +125,6 @@ export const gameTypePresets: Record<GameTypeId, GameTypePreset> = {
       rankLabel: '位阶',
       nextRankLabel: '下一位阶',
       factionLabel: '阵营',
-      statLabels: { hp: '生命', mp: '魔力', exp: '历练' },
       abilitiesTitle: '技能',
       abilityItemLabel: '技能',
       emptyAbilitiesText: '暂无已记录技能',
@@ -151,7 +139,6 @@ export const gameTypePresets: Record<GameTypeId, GameTypePreset> = {
       rankLabel: '身份',
       nextRankLabel: '下一阶段',
       factionLabel: '组织',
-      statLabels: { hp: '状态', mp: '人脉', exp: '进展' },
       abilitiesTitle: '技艺',
       abilityItemLabel: '技艺',
       emptyAbilitiesText: '暂无已记录技艺',

@@ -33,6 +33,7 @@ import {
   removeRemoteChangesCoveredByLocal,
   resolveLocalAction,
   stripChoices,
+  syncAttributesFromStats,
 } from '@/domain';
 import { getGameHostClient } from '@/host';
 
@@ -113,6 +114,7 @@ export function useGameSession(client?: GameHostClient): GameSessionController {
   const [breakthroughRealm, setBreakthroughRealm] = useState('');
   const [config, setConfig] = useState<AIConfigForm>(defaultConfig);
   const viewportRef = useRef<HTMLDivElement | null>(null);
+  const novelSearchRequestIdRef = useRef(0);
 
   const sceneNpcs = useMemo<NPC[]>(
     () => Object.values(gameState.npcs).filter(npc => npc.location === gameState.currentScene && !gameState.defeatedNpcs.includes(npc.id)),
@@ -150,10 +152,15 @@ export function useGameSession(client?: GameHostClient): GameSessionController {
   }, [refreshGameSaves]);
 
   const searchNovels = useCallback(async (keyword: string): Promise<void> => {
+    const requestId = novelSearchRequestIdRef.current + 1;
+    novelSearchRequestIdRef.current = requestId;
     setIsSearchingNovels(true);
     setNovelSearchMessage('');
     try {
       const result = await hostClient.searchNovels(keyword);
+      if (requestId !== novelSearchRequestIdRef.current)
+        return;
+
       if (result.success) {
         setNovels(mergeNovelSummaries(createRecommendedNovelSummaries(), result.data));
         setNovelSearchMessage(result.message ?? '');
@@ -163,7 +170,8 @@ export function useGameSession(client?: GameHostClient): GameSessionController {
       setNovelSearchMessage(result.message ?? '小说搜索失败');
     }
     finally {
-      setIsSearchingNovels(false);
+      if (requestId === novelSearchRequestIdRef.current)
+        setIsSearchingNovels(false);
     }
   }, [hostClient]);
 
@@ -491,6 +499,7 @@ export function useGameSession(client?: GameHostClient): GameSessionController {
       next.inventory = next.inventory.filter(item => item.count > 0);
       next.stats.hp = Math.floor(next.stats.maxHp * 0.5);
       next.stats.mp = Math.floor(next.stats.maxMp * 0.3);
+      next.attributes = syncAttributesFromStats(next.attributes, next.stats);
       next.isDead = false;
       const revivalScene = next.scenes[next.currentScene] ? next.currentScene : next.scenario.initialSceneName;
       next.character.location = revivalScene;

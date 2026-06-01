@@ -1,6 +1,7 @@
 import type { NPC } from '@xianxia-rpg/core';
 import type { ReactNode } from 'react';
 import type { StatusSidebarProps } from './types';
+import type { CharacterAttribute } from '@/domain';
 import { BookOpen, ChevronRight, Heart, Map, MessageSquare, Package, Shield, Sparkles, User, Waves } from 'lucide-react';
 import { Card } from '@/components/ui';
 import { InventoryItemEntry } from './inventory-item-entry';
@@ -19,6 +20,7 @@ export function StatusSidebar({
 }: StatusSidebarProps) {
   const inventoryItems = createInventoryViewItems(gameState.inventory, pinnedInventoryKeys);
   const gameTypeUi = getGameTypePreset(gameState.gameTypeId).ui;
+  const statBarClasses = ['from-hp-gradient-from to-hp-gradient-to', 'from-mp-gradient-from to-mp-gradient-to', 'from-exp-gradient-from to-exp-gradient-to'];
 
   return (
     <aside className="theme-game-sidebar w-[320px] shrink-0 overflow-y-auto p-4">
@@ -33,9 +35,9 @@ export function StatusSidebar({
 
       <Card className="theme-game-card mb-4 p-3">
         <PanelTitle icon={<Shield className="h-4 w-4" />} title="属性" />
-        <StatBar icon={<Heart className="h-3.5 w-3.5" />} label={gameTypeUi.statLabels.hp} value={gameState.stats.hp} max={gameState.stats.maxHp} className="from-hp-gradient-from to-hp-gradient-to" />
-        <StatBar icon={<Waves className="h-3.5 w-3.5" />} label={gameTypeUi.statLabels.mp} value={gameState.stats.mp} max={gameState.stats.maxMp} className="from-mp-gradient-from to-mp-gradient-to" />
-        <StatBar icon={<Sparkles className="h-3.5 w-3.5" />} label={gameTypeUi.statLabels.exp} value={gameState.stats.exp} max={gameState.stats.maxExp} className="from-exp-gradient-from to-exp-gradient-to" />
+        {gameState.attributes.map((attribute, index) => (
+          <StatBar key={attribute.key} attribute={attribute} icon={getAttributeIcon(index)} className={statBarClasses[index % statBarClasses.length]} />
+        ))}
       </Card>
 
       <Card className="theme-game-card mb-4 p-3">
@@ -116,21 +118,30 @@ function InfoRow({ label, value, highlight }: { label: string; value: string; hi
   );
 }
 
-function StatBar({ icon, label, value, max, className }: { icon: ReactNode; label: string; value: number; max: number; className: string }) {
+function getAttributeIcon(index: number): ReactNode {
+  const icons = [
+    <Heart key="heart" className="h-3.5 w-3.5" />,
+    <Waves key="waves" className="h-3.5 w-3.5" />,
+    <Sparkles key="sparkles" className="h-3.5 w-3.5" />,
+  ];
+  return icons[index % icons.length];
+}
+
+function StatBar({ attribute, icon, className }: { attribute: CharacterAttribute; icon: ReactNode; className: string }) {
   return (
     <div className="mb-3">
       <div className="mb-1 flex justify-between text-xs">
         <span className="flex items-center gap-1 text-muted-foreground">
           {icon}
-          {label}
+          {attribute.label}
         </span>
         <span>
-          {value}
+          {attribute.value}
           /
-          {max}
+          {attribute.max}
         </span>
       </div>
-      <div className="h-2 overflow-hidden rounded-full bg-muted"><div className={`h-full bg-gradient-to-r transition-all ${className}`} style={{ width: statPercent(value, max) }} /></div>
+      <div className="h-2 overflow-hidden rounded-full bg-muted"><div className={`h-full bg-gradient-to-r transition-all ${className}`} style={{ width: statPercent(attribute.value, attribute.max) }} /></div>
     </div>
   );
 }

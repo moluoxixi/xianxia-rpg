@@ -20,6 +20,17 @@ export interface CharacterStats {
   maxExp: number;
 }
 
+export type StatAttributeKey = 'hp' | 'mp' | 'exp';
+
+export interface CharacterAttribute {
+  key: string;
+  label: string;
+  value: number;
+  max: number;
+  statKey?: StatAttributeKey;
+  description?: string;
+}
+
 export interface InventoryItem {
   id?: string;
   name: string;

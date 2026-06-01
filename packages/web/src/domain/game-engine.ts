@@ -1,6 +1,7 @@
 import type { NPC, Scene } from '@xianxia-rpg/core';
 import type { AppliedEvent, ApplyResourceResult, GameState, ResourceChange } from './game-state';
 import { resolveCombat } from '@xianxia-rpg/core';
+import { formatAttribute, getStatAttributeLabel, syncStatAttribute, syncAttributesFromStats, upsertAttribute } from './game-attributes';
 import { getNextRealm, getRealmLevel, getRealmMaxExp, resourceRealmReq, resolveRealmName, skillRealmReq } from './game-data';
 import { getGameTypePreset } from './game-type';
 
@@ -24,7 +25,7 @@ export function buildPlayerStatus(gameState: GameState): string {
     .filter(npc => npc.location === gameState.currentScene && !gameState.defeatedNpcs.includes(npc.id))
     .map(npc => `${npc.name}（${npc.realm},${npc.role === 'enemy' ? '敌人' : npc.role === 'merchant' ? '商人' : '剧情NPC'},好感:${npc.favorability}${npc.attackable ? ',可攻击' : ''}）`);
 
-  return `【剧本】${gameState.scenario.title}\n参考:${gameState.scenario.referenceNovel}\n题材:${gameType.promptLabel}（${gameType.tone}）\n设定:${gameState.scenario.description}\n风格:${gameState.scenario.stylePrompt}\n\n【玩家状态】\n${gameTypeUi.rankLabel}:${gameState.character.realm} ${gameTypeUi.nextRankLabel}:${nextRank} ${gameTypeUi.statLabels.hp}:${gameState.stats.hp}/${gameState.stats.maxHp} ${gameTypeUi.statLabels.mp}:${gameState.stats.mp}/${gameState.stats.maxMp} ${gameTypeUi.statLabels.exp}:${gameState.stats.exp}/${gameState.stats.maxExp}\n位置:${gameState.character.location}\n背包:${gameState.inventory.map(i => `${i.name}×${i.count}`).join(', ') || '空'}\n${gameTypeUi.abilitiesTitle}:${gameState.skills.map(s => `${s.name}(${s.level})`).join(', ') || '无'}\n\n【当前场景】${gameState.currentScene}\n类型:${currentSceneData?.type ?? '未知'}\n描述:${currentSceneData?.description || '未记录'}\n关联场景:${currentSceneData?.connectedScenes.join(', ') || '无'}\n可获取:${currentSceneData?.availableResources.join(', ') || '无'}\n危险:${currentSceneData?.isDangerous ? '是' : '否'}\n场景NPC:${sceneNpcs.join(', ') || '无'}\n\n【已解锁场景】${Object.keys(gameState.scenes).join(', ')}`;
+  return `【剧本】${gameState.scenario.title}\n参考:${gameState.scenario.referenceNovel}\n题材:${gameType.promptLabel}（${gameType.tone}）\n设定:${gameState.scenario.description}\n风格:${gameState.scenario.stylePrompt}\n\n【玩家状态】\n${gameTypeUi.rankLabel}:${gameState.character.realm} ${gameTypeUi.nextRankLabel}:${nextRank} 属性:${gameState.attributes.map(formatAttribute).join(' ') || '未记录'}\n位置:${gameState.character.location}\n背包:${gameState.inventory.map(i => `${i.name}×${i.count}`).join(', ') || '空'}\n${gameTypeUi.abilitiesTitle}:${gameState.skills.map(s => `${s.name}(${s.level})`).join(', ') || '无'}\n\n【当前场景】${gameState.currentScene}\n类型:${currentSceneData?.type ?? '未知'}\n描述:${currentSceneData?.description || '未记录'}\n关联场景:${currentSceneData?.connectedScenes.join(', ') || '无'}\n可获取:${currentSceneData?.availableResources.join(', ') || '无'}\n危险:${currentSceneData?.isDangerous ? '是' : '否'}\n场景NPC:${sceneNpcs.join(', ') || '无'}\n\n【已解锁场景】${Object.keys(gameState.scenes).join(', ')}`;
 }
 
 export function createLocalActionChanges(_state: GameState, _actionText: string): ResourceChange[] {
@@ -103,13 +104,18 @@ function applyOneChange(next: GameState, change: ResourceChange): string {
       return removeItem(next, change);
     case 'hp':
       next.stats.hp = Math.max(0, Math.min(next.stats.maxHp, Number(change.value ?? 0)));
-      return `${getGameTypePreset(next.gameTypeId).ui.statLabels.hp} -> ${next.stats.hp}`;
+      next.attributes = syncStatAttribute(next.attributes, next.stats, 'hp');
+      return `${getStatAttributeLabel(next.attributes, 'hp')} -> ${next.stats.hp}`;
     case 'mp':
       next.stats.mp = Math.max(0, Math.min(next.stats.maxMp, Number(change.value ?? 0)));
-      return `${getGameTypePreset(next.gameTypeId).ui.statLabels.mp} -> ${next.stats.mp}`;
+      next.attributes = syncStatAttribute(next.attributes, next.stats, 'mp');
+      return `${getStatAttributeLabel(next.attributes, 'mp')} -> ${next.stats.mp}`;
     case 'exp':
       next.stats.exp = Math.max(0, Math.min(next.stats.maxExp, Number(change.value ?? 0)));
-      return `${getGameTypePreset(next.gameTypeId).ui.statLabels.exp} -> ${next.stats.exp}/${next.stats.maxExp}`;
+      next.attributes = syncStatAttribute(next.attributes, next.stats, 'exp');
+      return `${getStatAttributeLabel(next.attributes, 'exp')} -> ${next.stats.exp}/${next.stats.maxExp}`;
+    case 'attribute_update':
+      return updateAttribute(next, change);
     case 'realm':
       return updateRealm(next, change);
     case 'location':
@@ -390,6 +396,7 @@ function updateRealm(next: GameState, change: ResourceChange): string {
   next.stats.mp = next.stats.maxMp;
   next.stats.exp = 0;
   next.stats.maxExp = getRealmMaxExp(newRealm);
+  next.attributes = syncAttributesFromStats(next.attributes, next.stats);
   return `${getGameTypePreset(next.gameTypeId).ui.nextRankLabel}：${oldRealm} -> ${newRealm}`;
 }
 
@@ -434,12 +441,53 @@ function describeLocalSettlements(state: GameState, changes: ResourceChange[]): 
   const gameTypeUi = getGameTypePreset(state.gameTypeId).ui;
   const descriptions: string[] = [];
   if (changes.some(change => change.type === 'exp'))
-    descriptions.push(`${gameTypeUi.statLabels.exp}已更新`);
+    descriptions.push(`${getStatAttributeLabel(state.attributes, 'exp')}已更新`);
   if (changes.some(change => change.type === 'realm'))
     descriptions.push(`${gameTypeUi.nextRankLabel}已更新`);
   if (changes.some(change => change.type === 'hp'))
-    descriptions.push(`${gameTypeUi.statLabels.hp}恢复已处理`);
+    descriptions.push(`${getStatAttributeLabel(state.attributes, 'hp')}恢复已处理`);
   return descriptions;
+}
+
+function updateAttribute(next: GameState, change: ResourceChange): string {
+  const statKey = change.attribute_stat_key;
+  const previous = change.attribute_key
+    ? next.attributes.find(attribute => attribute.key === change.attribute_key)
+    : statKey
+      ? next.attributes.find(attribute => attribute.statKey === statKey)
+      : undefined;
+  const key = change.attribute_key ?? previous?.key ?? statKey ?? '';
+  if (!key)
+    return '';
+  const value = change.attribute_delta !== undefined ? (previous?.value ?? 0) + change.attribute_delta : change.attribute_value ?? previous?.value ?? 0;
+  const max = change.attribute_max ?? previous?.max ?? Math.max(100, value);
+  const label = change.attribute_label ?? previous?.label ?? key;
+  const nextStatKey = statKey ?? previous?.statKey;
+  syncStatsFromAttribute(next, nextStatKey, value, max);
+  next.attributes = upsertAttribute(next.attributes, {
+    key,
+    label,
+    value: Math.max(0, Math.min(max, value)),
+    max,
+    statKey: nextStatKey,
+    description: change.attribute_description ?? previous?.description,
+  });
+  return `${label} -> ${Math.max(0, Math.min(max, value))}/${max}`;
+}
+
+function syncStatsFromAttribute(next: GameState, statKey: ResourceChange['attribute_stat_key'], value: number, max: number): void {
+  if (statKey === 'hp') {
+    next.stats.hp = Math.max(0, Math.min(max, value));
+    next.stats.maxHp = max;
+  }
+  if (statKey === 'mp') {
+    next.stats.mp = Math.max(0, Math.min(max, value));
+    next.stats.maxMp = max;
+  }
+  if (statKey === 'exp') {
+    next.stats.exp = Math.max(0, Math.min(max, value));
+    next.stats.maxExp = max;
+  }
 }
 
 function addSkill(next: GameState, change: ResourceChange): string {
@@ -523,6 +571,7 @@ function executeCombatFromAI(state: GameState, opponentName: string, opponentAtt
   const playerDefense = 5 + state.stats.maxHp * 0.05;
   const log = resolveCombat(playerAttack, playerDefense, state.stats.hp, state.stats.maxHp, opponentAttack, opponentDefense, opponentHp, opponentHp, difficultyMult);
   state.stats.hp = log.playerHp;
+  state.attributes = syncStatAttribute(state.attributes, state.stats, 'hp');
   const lines = [`【战斗】你 vs ${opponentName}`];
   for (const round of log.rounds) {
     const crit = round.isCritical ? ' 暴击!' : '';

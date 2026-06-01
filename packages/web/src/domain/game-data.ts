@@ -1,6 +1,7 @@
 import type { Scene } from '@xianxia-rpg/core';
 import type { GameState } from './game-state';
 import type { ChatMessage, InventoryItem, InventoryViewItem, Role, Skill } from './types';
+import { applyAttributesToStats, createAttributesFromScenario, syncAttributesFromStats } from './game-attributes';
 import { normalizeGameTypeId } from './game-type';
 import { createDefaultScenarioPack, normalizeScenarioPack } from './scenario';
 import type { ScenarioPack } from './scenario';
@@ -172,11 +173,13 @@ export function createInitialGameState(): GameState {
 }
 
 export function createGameStateFromScenario(scenario: ScenarioPack): GameState {
+  const stats = applyAttributesToStats(createInitialStats(scenario.player.realm), scenario.initialAttributes);
   return {
     runId: createRunId(),
     scenario,
     character: structuredClone(scenario.player),
-    stats: createInitialStats(scenario.player.realm),
+    stats,
+    attributes: createAttributesFromScenario(scenario.initialAttributes, stats),
     inventory: createScenarioInventory(scenario),
     skills: createScenarioSkills(scenario),
     chatHistory: [],
@@ -232,13 +235,15 @@ export function normalizeLoadedGameState(data: unknown): GameState | null {
   const loaded = data as Partial<GameState>;
   const scenario = normalizeScenarioPack(loaded.scenario) ?? createDefaultScenarioPack();
   const fallback = createGameStateFromScenario(scenario);
+  const stats = { ...fallback.stats, ...loaded.stats };
   return {
     ...fallback,
     ...loaded,
     scenario,
     runId: loaded.runId ?? fallback.runId,
     character: { ...fallback.character, ...loaded.character },
-    stats: { ...fallback.stats, ...loaded.stats },
+    stats,
+    attributes: syncAttributesFromStats(loaded.attributes ?? fallback.attributes, stats),
     inventory: Array.isArray(loaded.inventory) ? loaded.inventory : fallback.inventory,
     skills: Array.isArray(loaded.skills) ? loaded.skills : fallback.skills,
     chatHistory: Array.isArray(loaded.chatHistory) ? loaded.chatHistory : fallback.chatHistory,

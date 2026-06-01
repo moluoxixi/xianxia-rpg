@@ -1,5 +1,5 @@
 import type { NovelSummary, NPC, Scene } from '@xianxia-rpg/core';
-import type { CharacterInfo, InventoryItem, Skill } from './types';
+import type { CharacterAttribute, CharacterInfo, InventoryItem, Skill } from './types';
 import { DEFAULT_GAME_TYPE_ID, inferGameTypeFromNovel, normalizeGameTypeId } from './game-type';
 import type { GameTypeId } from './game-type';
 import { DEFAULT_THEME_ID, inferThemeIdFromNovel, normalizeThemeId, normalizeThemeSource } from './theme';
@@ -15,6 +15,7 @@ export interface ScenarioPack {
   gameTypeId: GameTypeId;
   themeId: GameThemeId;
   themeSource: GameThemeSource;
+  initialAttributes?: CharacterAttribute[];
   initialInventory?: InventoryItem[];
   initialSkills?: Skill[];
   initialNpcs?: NPC[];
@@ -30,6 +31,7 @@ export interface ScenarioGenerationSeed {
   stylePrompt: string;
   openingMessage: string;
   player: CharacterInfo;
+  attributes: CharacterAttribute[];
   initialSceneName: string;
   scenes: Scene[];
   npcs: NPC[];
@@ -127,6 +129,11 @@ export function createDefaultScenarioPack(): ScenarioPack {
     gameTypeId: DEFAULT_GAME_TYPE_ID,
     themeId: DEFAULT_THEME_ID,
     themeSource: 'default',
+    initialAttributes: [
+      { key: 'hp', label: '状态', value: 80, max: 80, statKey: 'hp' },
+      { key: 'mp', label: '行动力', value: 80, max: 100, statKey: 'mp' },
+      { key: 'exp', label: '进展', value: 0, max: 100, statKey: 'exp' },
+    ],
     player: { name: '玩家', realm: '未定身份', sect: '未定', location: sceneName },
     initialSceneName: sceneName,
     scenes: {
@@ -160,6 +167,11 @@ export function createScenarioFromNovelTitle(novelTitle: string, themeId: GameTh
     gameTypeId,
     themeId,
     themeSource,
+    initialAttributes: [
+      { key: 'hp', label: '状态', value: 80, max: 80, statKey: 'hp' },
+      { key: 'mp', label: '行动力', value: 80, max: 100, statKey: 'mp' },
+      { key: 'exp', label: '进展', value: 0, max: 100, statKey: 'exp' },
+    ],
     player: { name: '玩家', realm: '未定身份', sect: '未定', location: sceneName },
     initialSceneName: sceneName,
     scenes: {
@@ -195,6 +207,7 @@ function createScenarioFromSeed(referenceNovel: string, themeId: GameThemeId, th
     gameTypeId,
     themeId,
     themeSource,
+    initialAttributes: seed.attributes,
     initialInventory: seed.inventory,
     initialSkills: seed.skills,
     initialNpcs: seed.npcs,

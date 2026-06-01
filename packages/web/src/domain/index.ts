@@ -1,4 +1,5 @@
 export { parseChoices, parseQuickActions, parseResourceChanges, stripChoices } from './ai-protocol';
+export { applyAttributesToStats, createAttributesFromScenario, createDefaultAttributes, formatAttribute, getStatAttributeLabel, syncAttributesFromStats, syncStatAttribute, upsertAttribute } from './game-attributes';
 export {
   cloneInitialState,
   cloneScenarioInitialState,
@@ -33,4 +34,4 @@ export { availableNovelScenarios, createDefaultScenarioPack, createRecommendedNo
 export type { NovelScenarioOption, ScenarioGenerationSeed, ScenarioPack } from './scenario';
 export { DEFAULT_THEME_ID, gameThemePresets, getGameThemePreset, inferThemeIdFromNovel, inferThemeIdFromSave, normalizeThemeId, normalizeThemeSource, themeIds } from './theme';
 export type { GameThemeId, GameThemePreset, GameThemeSource, ThemeSaveSummary } from './theme';
-export type { AIConfigForm, CharacterInfo, CharacterStats, ChatMessage, Choice, Difficulty, InventoryItem, InventoryViewItem, Role, Skill } from './types';
+export type { AIConfigForm, CharacterAttribute, CharacterInfo, CharacterStats, ChatMessage, Choice, Difficulty, InventoryItem, InventoryViewItem, Role, Skill, StatAttributeKey } from './types';

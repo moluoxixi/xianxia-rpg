@@ -9,9 +9,6 @@ describe('game type UI copy', () => {
       expect(preset.ui.rankLabel).not.toHaveLength(0);
       expect(preset.ui.nextRankLabel).not.toHaveLength(0);
       expect(preset.ui.factionLabel).not.toHaveLength(0);
-      expect(preset.ui.statLabels.hp).not.toHaveLength(0);
-      expect(preset.ui.statLabels.mp).not.toHaveLength(0);
-      expect(preset.ui.statLabels.exp).not.toHaveLength(0);
       expect(preset.ui.abilitiesTitle).not.toHaveLength(0);
       expect(preset.ui.abilityItemLabel).not.toHaveLength(0);
     }
@@ -25,9 +22,6 @@ describe('game type UI copy', () => {
         preset.ui.rankLabel,
         preset.ui.nextRankLabel,
         preset.ui.factionLabel,
-        preset.ui.statLabels.hp,
-        preset.ui.statLabels.mp,
-        preset.ui.statLabels.exp,
         preset.ui.abilitiesTitle,
         preset.ui.abilityItemLabel,
         preset.ui.emptyAbilitiesText,

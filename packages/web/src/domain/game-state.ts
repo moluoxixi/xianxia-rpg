@@ -2,13 +2,14 @@ import type { NPC, Scene } from '@xianxia-rpg/core';
 import type { GameTypeId } from './game-type';
 import type { ScenarioPack } from './scenario';
 import type { GameThemeId, GameThemeSource } from './theme';
-import type { CharacterInfo, CharacterStats, Difficulty, InventoryItem, Skill } from './types';
+import type { CharacterAttribute, CharacterInfo, CharacterStats, Difficulty, InventoryItem, Skill, StatAttributeKey } from './types';
 
 export interface GameState {
   runId: string;
   scenario: ScenarioPack;
   character: CharacterInfo;
   stats: CharacterStats;
+  attributes: CharacterAttribute[];
   inventory: InventoryItem[];
   skills: Skill[];
   chatHistory: Array<{ role: string; content: string }>;
@@ -35,6 +36,7 @@ export interface ResourceChange {
     | 'skill_add'
     | 'skill_levelup'
     | 'combat'
+    | 'attribute_update'
     | 'scene_define'
     | 'npc_add'
     | 'npc_update'
@@ -42,6 +44,13 @@ export interface ResourceChange {
   name?: string;
   count?: number;
   value?: string | number;
+  attribute_key?: string;
+  attribute_label?: string;
+  attribute_value?: number;
+  attribute_max?: number;
+  attribute_delta?: number;
+  attribute_stat_key?: StatAttributeKey;
+  attribute_description?: string;
   level?: string;
   opponent?: string;
   opponent_attack?: number;

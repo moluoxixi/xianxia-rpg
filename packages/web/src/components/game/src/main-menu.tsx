@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { Button, Card, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Input, Popover, PopoverClose, PopoverContent, PopoverTrigger, Select, buttonVariants } from '@/components/ui';
 import { DEFAULT_GAME_TYPE_ID, gameThemePresets, getGameThemePreset, getGameTypePreset, inferGameTypeFromNovel, inferThemeIdFromNovel, inferThemeIdFromSave, normalizeGameTypeId, themeIds } from '@/domain';
 import { cn } from '@/lib/utils';
+import { isSameNovelSelection, resolveMenuSelectedNovel } from './main-menu-novel-selection';
 
 export function MainMenu({
   saves,
@@ -30,17 +31,17 @@ export function MainMenu({
   const [startingGame, setStartingGame] = useState(false);
   const [novelFilter, setNovelFilter] = useState('');
   const [saveFilter, setSaveFilter] = useState('');
-  const [selectedNovelId, setSelectedNovelId] = useState(novels[0]?.id ?? '');
+  const [selectedNovelSnapshot, setSelectedNovelSnapshot] = useState<NovelSummary | null>(null);
   const [manualThemeId, setManualThemeId] = useState<GameThemeId | null>(null);
-  const selectedNovel = novels.find(novel => novel.id === selectedNovelId) ?? novels[0];
   const latestSave = saves[0];
+  const visibleNovels = novels.filter(novel => matchesNovelFilter(novel, novelFilter));
+  const selectedNovel = resolveMenuSelectedNovel({ novels, visibleNovels, selectedNovel: selectedNovelSnapshot });
   const selectedNovelThemeId = selectedNovel ? inferThemeIdFromNovel(selectedNovel.title, selectedNovel.description) : activeThemeId;
   const selectedNovelGameTypeId = selectedNovel ? inferGameTypeFromNovel(selectedNovel.title, selectedNovel.description) : DEFAULT_GAME_TYPE_ID;
   const selectedThemeId = manualThemeId ?? selectedNovelThemeId;
   const selectedThemeSource: GameThemeSource = manualThemeId ? 'user-override' : 'novel-auto';
   const visibleTheme = getGameThemePreset(newGameOpen ? selectedThemeId : activeThemeId);
   const latestSaveTheme = latestSave ? getGameThemePreset(inferThemeIdFromSave(latestSave)) : null;
-  const visibleNovels = novels.filter(novel => matchesNovelFilter(novel, novelFilter));
   const visibleSaves = saves.filter(save => matchesSaveFilter(save, saveFilter));
 
   useEffect(() => {
@@ -53,8 +54,8 @@ export function MainMenu({
     return () => window.clearTimeout(timer);
   }, [newGameOpen, novelFilter, onSearchNovels]);
 
-  function selectNovel(novelId: string): void {
-    setSelectedNovelId(novelId);
+  function selectNovel(novel: NovelSummary): void {
+    setSelectedNovelSnapshot(novel);
     setManualThemeId(null);
   }
 
@@ -167,9 +168,9 @@ export function MainMenu({
                       <PopoverClose
                         key={novel.id}
                         className="theme-option-item flex w-full items-center gap-2 rounded-sm px-2 py-2 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                        onClick={() => selectNovel(novel.id)}
+                        onClick={() => selectNovel(novel)}
                       >
-                        <Check className={cn('h-4 w-4 shrink-0', novel.id === selectedNovel?.id ? 'opacity-100' : 'opacity-0')} />
+                        <Check className={cn('h-4 w-4 shrink-0', isSameNovelSelection(novel, selectedNovel) ? 'opacity-100' : 'opacity-0')} />
                         <span className="min-w-0 flex-1 truncate">{formatNovelOption(novel)}</span>
                       </PopoverClose>
                     ))}
