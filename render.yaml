@@ -1,0 +1,24 @@
+# Render Blueprint for the single-container web deployment.
+# API keys are intentionally marked as unsynced secrets and must be filled in Render.
+services:
+  - type: web
+    name: xianxia-rpg
+    runtime: docker
+    plan: free
+    repo: https://github.com/moluoxixi/xianxia-rpg
+    branch: main
+    dockerfilePath: ./Dockerfile
+    autoDeployTrigger: commit
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: XIANXIA_DATA_DIR
+        value: /data
+      - key: XIANXIA_OPENAI_BASE_URL
+        value: https://coderelay.cn/v1
+      - key: XIANXIA_ANTHROPIC_BASE_URL
+        value: https://coderelay.cn
+      - key: XIANXIA_OPENAI_API_KEY
+        sync: false
+      - key: XIANXIA_ANTHROPIC_API_KEY
+        sync: false

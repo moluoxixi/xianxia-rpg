@@ -72,3 +72,12 @@ docker compose -f docker-compose.split.yml up --build
 - `docker-compose.split.yml`：本地默认把 Web 暴露到 `http://localhost:5173`，API 暴露到 `http://localhost:3000`。
 
 Electron 打包不走前端或后端的独立 Docker 镜像。桌面形态仍使用根级 `pnpm run build` 产出 Web、API 和 main 代码，Electron 启动内置 Nest API 并加载本地服务页面；后续如果引入 `electron-builder`，应单独建立桌面打包流水线。
+
+## Render 免费部署
+
+仓库根目录提供 `render.yaml`，用于把 `main` 分支按单容器 Web 服务发布到 Render：
+
+1. 在 Render 选择 Blueprint 或从 GitHub 导入 `moluoxixi/xianxia-rpg`。
+2. 选择仓库根目录的 `render.yaml`，服务会使用根目录 `Dockerfile` 构建整站。
+3. `XIANXIA_OPENAI_API_KEY` 和 `XIANXIA_ANTHROPIC_API_KEY` 是 unsynced secret，需要在 Render 环境变量界面手动填写。
+4. Free Web Service 不提供可靠持久磁盘，SQLite 存档目录 `/data` 在实例重建或重新部署后可能丢失；正式多人使用前需要升级到持久化磁盘或外部数据库。
