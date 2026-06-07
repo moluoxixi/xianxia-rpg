@@ -95,6 +95,38 @@
 - 涉及 TypeORM/Prisma、UnitOfWork、Transactional Outbox、Repository 或数据库约束时，必须交付集成测试；优先使用 `@nestjs/testing`、项目既有测试数据库、Testcontainers 或等价隔离环境。
 - 测试框架优先使用项目既有 Jest、Vitest、Supertest 或真实浏览器/E2E 工具；禁止只保留 `contextLoads`、模块能编译、能返回 200 等低价值烟雾测试。
 
+# 前端外部组件库文档规范
+
+## 触发边界
+
+- 本规范适用于前端项目消费外部组件库、Design System、UI SDK 或 workspace 组件包的场景。
+- 当前项目自己的组件库输出不使用本规范；组件库项目对外契约由组件库输出规则和 `components-docs` 输出到 `docs/out-components/`。
+- 修改外部组件库依赖版本、封装适配层、主题配置、组件使用约束、表单/弹窗/表格等公共用法，或初始化时发现已有外部组件库文档时，必须触发 `components-docs` 的 consumer mode。
+
+## 输出边界
+
+- 外部组件库消费文档输出到 `docs/components/`，用于约束本项目如何使用依赖组件库。
+- 组件消费事实必须由 AI 读取 `package.json`、lockfile、源码 import、全局注册、主题配置、已有文档和示例后推导；不得只凭目录名生成正文。
+- 普通业务组件不得写入 `docs/components/`；无法确认是否属于外部组件库时，先标记 `MISSING component ownership`，不得伪装为已归类。
+
+# 后端 API 契约文档规范
+
+## 触发边界
+
+- 本规范适用于 HTTP API、GraphQL、RPC、Webhook、消息事件、后端 SDK 或其它向外部调用方暴露契约的后端项目。
+- 修改路由、Controller、Resolver、DTO/schema、OpenAPI/Swagger、错误码、鉴权、分页、Headers、版本策略、Webhook、事件契约或 SDK 对外 API 时，必须触发 `api-docs` 的 provider mode。
+- 修改外部服务调用、SDK/generated client、Feign/gRPC client、Webhook 消费、消息订阅、Mock 上游、环境变量服务地址或已有外部接口文档时，必须触发 `api-docs` 的 consumer mode。
+- 领域规则、架构决策、测试策略仍分别交给 `prd-docs`、`architecture-docs`、`test-docs`；本规范只约束 API 对外契约输出。
+
+## 输出边界
+
+- 当前项目提供的 API 契约输出到 `docs/out-api/`，用于前端、第三方、测试代理或其它服务复用。
+- 当前项目消费的外部 API、上游服务、SDK 或 generated client 契约输出到 `docs/api/`，用于约束本项目调用外部接口。
+- 具体文档结构、字段、示例和写作规则以 `api-docs` 为准，本规则不重复描述。
+- `docs/api/` 不得作为 `docs/out-api/` 的镜像目录；已有接口文档必须先判断 ownership 后再转换。
+- API 契约事实必须由 AI 阅读后端源码、路由注册、DTO/schema、OpenAPI/Swagger、测试、Mock 和已有文档后推导；不得只依赖脚本或目录名生成正文。
+- 更新 `docs/out-api/` 时必须维护 `docs/out-api/index.md` 的 `来源快照`；无法确认 commit 或工作区 dirty 时显式标记，不得伪造提交 ID。
+
 # 项目文档知识库
 
 ## 读取顺序
@@ -102,20 +134,27 @@
 - 当任务涉及架构、模块边界、需求、接口联调、组件实现、测试设计、业务流程、字段口径、验收标准或用户提到具体业务域时，必须先检索并读取 `docs/`。
 - 优先读取 `docs/map.md`，再读取相关目录的 `index.md`，最后按关键词读取命中的业务文档。
 - 涉及架构、分层、依赖方向、部署、权限模型或技术选型时，必须读取 `docs/architecture/index.md`、`docs/architecture/overview.md` 和相关 ADR。
-- 涉及接口、联调、请求封装、错误处理、分页、鉴权或 Mock 时，必须读取 `docs/api/_protocol.md` 和相关业务接口文档。
+- 涉及当前项目消费的外部接口、联调、请求封装、错误处理、分页、鉴权或 Mock 时，必须读取 `docs/api/_protocol.md` 和相关外部接口文档。
+- 涉及当前项目提供给外部调用方的 API 契约时，必须读取 `docs/out-api/_protocol.md` 和相关提供方接口文档。
+- 涉及当前项目消费的外部组件库、Design System、UI SDK 或 workspace 组件包时，必须读取 `docs/components/index.md` 和相关组件文档。
+- 涉及当前项目自身组件库对外契约时，必须读取 `docs/out-components/index.md` 和相关组件文档。
 - 若相关内容未在分类目录中找到，必须读取 `docs/other/index.md`，检查是否存在待整理的旧文档入口。
 - 检索关键词必须包含用户原始业务词、可能的英文名、接口路径、页面路由、组件名、实体名和领域缩写。
 - 若相关文档存在，以文档为业务事实来源，再结合 CodeGraph 分析代码结构；不得只凭代码反推需求。
+- 若文档与代码、用户口径或其它文档冲突，必须停止并报告冲突位置；不得静默用代码覆盖文档事实。
 - 若相关文档缺失，交付中标记 `MISSING docs`，并说明已检索的关键词和路径。
 
 ## 维护规则
 
 - 新增或修改架构、PRD、API、组件、测试文档时，必须分别使用 `architecture-docs`、`prd-docs`、`api-docs`、`components-docs`、`test-docs`，并同步更新目录 `index.md` 与 `docs/map.md`。
 - 文档按业务域独立成篇；例如 `docs/prds/采购订单.md`、`docs/api/采购订单.md`、`docs/test/采购订单.md`。
-- 全局接口协议维护在 `docs/api/_protocol.md`；业务接口文档不得重复定义冲突协议。
+- 外部接口消费协议维护在 `docs/api/_protocol.md`；当前项目提供的 API 全局协议维护在 `docs/out-api/_protocol.md`；业务接口文档不得重复定义冲突协议。
+- `docs/api/` 与 `docs/components/` 记录当前项目消费的外部接口和外部组件库；不得写入当前项目自己提供的 API 或组件库对外契约。
+- `docs/out-api/` 与 `docs/out-components/` 记录当前项目提供给外部调用方或消费方复用的契约；不得作为内部知识库镜像目录。
 - 架构决策维护在 `docs/architecture/decisions/`，影响模块边界、技术选型、数据模型、接口协议或部署拓扑时必须记录 ADR。
 - 前端项目可包含 `docs/components/`；后端项目不强制创建组件文档目录。
 - 初始化前已存在但暂未归类的文档登记在 `docs/other/index.md`；整理旧文档时必须先评估归属，不得自动移动或覆盖用户文档。
+- 初始化前归档到 `docs/other/imported/` 的旧文档只能作为来源证据；未转换为标准分类文档前，不得作为长期业务事实使用。
 - 不得把需求、接口、组件和测试内容混写到同一个文档；跨文档关系通过链接引用。
 
 ## 代码变更与文档同步
